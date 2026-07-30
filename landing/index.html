@@ -112,6 +112,62 @@
   .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
   @media (max-width: 760px) { .features-grid { grid-template-columns: 1fr; } }
 
+  /* — product screens — */
+  .screens { padding: 8px 0 64px; }
+  .screens h2 { font-size: 30px; margin: 14px 0 36px; }
+  .screens-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  @media (max-width: 860px) { .screens-grid { grid-template-columns: 1fr; } }
+
+  .browser {
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+  }
+  .browser-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 14px;
+  }
+  .browser-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--color-neutral-700); }
+  .browser-url {
+    margin-left: 8px; flex: 1;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 11.5px; color: var(--color-neutral-500);
+    background: color-mix(in srgb, var(--color-text) 6%, transparent);
+    border-radius: 5px; padding: 4px 10px;
+  }
+  .browser-screen {
+    background: #F5F6F8; color: #10151F; padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .screen-cap {
+    font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--color-accent-300); margin: 0 0 10px;
+  }
+
+  /* mockup: meus imóveis */
+  .mock-stats { display: flex; gap: 8px; margin-bottom: 12px; }
+  .mock-stat { flex: 1; background: #fff; border: 1px solid #E5E7EB; border-radius: 8px; padding: 10px 12px; }
+  .mock-stat b { display: block; font-size: 18px; line-height: 1.2; }
+  .mock-stat span { font-size: 10.5px; color: #6B7280; }
+  .mock-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: #fff; border: 1px solid #E5E7EB; border-radius: 8px;
+    padding: 10px 12px; margin-bottom: 8px; font-size: 12.5px;
+  }
+  .mock-row .addr { font-weight: 600; }
+  .mock-row .meta { color: #6B7280; font-size: 11px; margin-top: 1px; }
+  .mock-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .mock-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  /* mockup: revisar contrato */
+  .mock-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; }
+  .mock-card h4 { font-size: 12px; font-weight: 700; margin: 0 0 8px; color: #10151F; }
+  .mock-line { display: flex; justify-content: space-between; font-size: 12px; padding: 5px 0; border-top: 1px solid #F0F1F3; }
+  .mock-line:first-of-type { border-top: none; }
+  .mock-line span:first-child { color: #6B7280; }
+  .mock-line span:last-child { font-weight: 600; }
+
   /* — how it works (saturated band) — */
   .how { background: linear-gradient(135deg, var(--color-accent-900), var(--color-accent-700)); padding: 64px 0; margin-top: 24px; }
   .how h2 { font-size: 30px; margin: 14px 0 36px; color: #fff; }
@@ -178,6 +234,56 @@
       <p class="card-kicker" style="margin-top:14px">Desejo nº3</p>
       <h3 class="card-title">Pagamentos automáticos</h3>
       <p class="card-body">O Gim gera as cobranças do aluguel todo mês e avisa quando alguém está atrasado.</p>
+    </div>
+  </div>
+</section>
+
+<section class="wrap screens">
+  <span class="tag tag-outline">Cada desejo, uma tela</span>
+  <h2>Por dentro do Gim — sem mágica escondida.</h2>
+  <div class="screens-grid">
+    <div class="browser">
+      <div class="browser-bar">
+        <span class="browser-dot"></span><span class="browser-dot"></span><span class="browser-dot"></span>
+        <span class="browser-url">app.gim-imoveis.com/imoveis</span>
+      </div>
+      <div class="browser-screen">
+        <p class="screen-cap">Desejo nº1 — Organizar seus imóveis</p>
+        <div class="mock-stats">
+          <div class="mock-stat"><b>7</b><span>Cadastrados</span></div>
+          <div class="mock-stat"><b style="color:#2563EB">4</b><span>Alugados</span></div>
+          <div class="mock-stat"><b style="color:#16A34A">3</b><span>Vagos</span></div>
+        </div>
+        <div class="mock-row">
+          <div><div class="addr">Rua das Acácias, 214</div><div class="meta">São Paulo · matrícula 48.219</div></div>
+          <span class="mock-pill" style="color:#16A34A"><span class="mock-dot" style="background:#16A34A"></span>Alugado</span>
+        </div>
+        <div class="mock-row" style="margin-bottom:0">
+          <div><div class="addr">Av. Ipiranga, 900 · apto 62</div><div class="meta">Porto Alegre · matrícula 11.087</div></div>
+          <span class="mock-pill" style="color:#D97706"><span class="mock-dot" style="background:#D97706"></span>Aguardando</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="browser">
+      <div class="browser-bar">
+        <span class="browser-dot"></span><span class="browser-dot"></span><span class="browser-dot"></span>
+        <span class="browser-url">app.gim-imoveis.com/revisar</span>
+      </div>
+      <div class="browser-screen">
+        <p class="screen-cap">Desejo nº2 — Contratos sem cartório</p>
+        <div class="mock-card">
+          <h4>Detalhes</h4>
+          <div class="mock-line"><span>Tipo</span><span>Residencial</span></div>
+          <div class="mock-line"><span>Aluguel</span><span>R$ 2.400,00</span></div>
+          <div class="mock-line"><span>Período</span><span>01/08/26 – 31/07/27</span></div>
+        </div>
+        <div class="mock-card" style="margin-bottom:0">
+          <h4>Assinaturas</h4>
+          <div class="mock-line"><span>Proprietário</span><span style="color:#16A34A">Assinado</span></div>
+          <div class="mock-line"><span>Inquilino</span><span style="color:#D97706">Pendente</span></div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
