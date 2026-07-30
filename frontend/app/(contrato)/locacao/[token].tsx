@@ -3,6 +3,7 @@ import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-nati
 import { router, useLocalSearchParams } from 'expo-router';
 import { apiFetch } from '@/api/client';
 import { Button } from '@/design/Button';
+import { Pill } from '@/design/Pill';
 import { Convite, ConviteInquilino, MeResponse } from '@/api/types';
 
 type GarantiaTipo = 'CAUCAO' | 'FIADOR' | 'SEGURO_FIANCA' | 'TITULO_CAPITALIZACAO';
@@ -189,16 +190,22 @@ export default function ConviteLocacaoScreen() {
 
   return (
     <ScrollView className="flex-1 bg-surface" contentContainerClassName="p-6">
-      <View className="w-full self-center bg-card border-2 border-border rounded p-6" style={{ maxWidth: 620 }}>
+      <View
+        className="w-full self-center bg-card rounded-xl p-6"
+        style={{ maxWidth: 620, borderWidth: 1, borderColor: '#E5E7EB' }}
+      >
         <Text className="text-primary mb-2" style={{ fontSize: 24, fontWeight: '800' }}>
           Convite de locação
         </Text>
-        <Text className="text-muted mb-5">
+        <Text className="text-muted mb-5" style={{ fontSize: 14 }}>
           Este convite vincula proprietário, imóvel e inquilino em uma nova relação de locação.
         </Text>
 
         {convite ? (
-          <View className="mb-5 gap-2 border-2 border-border rounded px-4 py-4 bg-surface">
+          <View
+            className="mb-5 gap-2 rounded-xl px-4 py-4"
+            style={{ borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#F5F6F8' }}
+          >
             <Text className="text-primary" style={{ fontWeight: '700' }}>Tipo: {formatTipo(convite.tipoContrato)}</Text>
             <Text className="text-muted">Imóvel: {convite.imovelId}</Text>
             <Text className="text-muted">Proprietário: {convite.proprietarioId}</Text>
@@ -229,31 +236,39 @@ export default function ConviteLocacaoScreen() {
             <Text className="text-muted">Se você ainda não tem conta, faça o cadastro com senha.</Text>
             <TextInput
               placeholder="Username"
+              placeholderTextColor="#9CA3AF"
               value={username}
               onChangeText={setUsername}
-              className="border-2 border-border rounded px-3 py-3 bg-card text-primary"
+              className="bg-card px-4 py-3 text-primary rounded-xl"
+              style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
             />
             <TextInput
               placeholder="CPF"
+              placeholderTextColor="#9CA3AF"
               value={cpf}
               onChangeText={setCpf}
               keyboardType="numeric"
-              className="border-2 border-border rounded px-3 py-3 bg-card text-primary"
+              className="bg-card px-4 py-3 text-primary rounded-xl"
+              style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
             />
             <TextInput
               placeholder="E-mail"
+              placeholderTextColor="#9CA3AF"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
-              className="border-2 border-border rounded px-3 py-3 bg-card text-primary"
+              className="bg-card px-4 py-3 text-primary rounded-xl"
+              style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
             />
             <TextInput
               placeholder="Senha"
+              placeholderTextColor="#9CA3AF"
               value={senha}
               onChangeText={setSenha}
               secureTextEntry
-              className="border-2 border-border rounded px-3 py-3 bg-card text-primary"
+              className="bg-card px-4 py-3 text-primary rounded-xl"
+              style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
             />
             <Button label="Cadastrar e aceitar convite" onPress={cadastrarPorConvite} loading={loadingAction} />
             <Button label="Já tenho conta, ir para login" variant="outline" onPress={() => router.push('/login')} />
@@ -266,31 +281,32 @@ export default function ConviteLocacaoScreen() {
               Envio de garantia
             </Text>
             <Text className="text-muted">Selecione o tipo e informe os dados da garantia.</Text>
-            <View className="flex-row gap-2">
+            <View className="flex-row gap-2" style={{ flexWrap: 'wrap' }}>
               {(['CAUCAO', 'FIADOR', 'SEGURO_FIANCA', 'TITULO_CAPITALIZACAO'] as GarantiaTipo[]).map((tipo) => (
-                <Button
+                <Pill
                   key={tipo}
                   label={formatTipo(tipo)}
-                  variant={garantiaTipo === tipo ? 'primary' : 'outline'}
+                  selected={garantiaTipo === tipo}
                   onPress={() => setGarantiaTipo(tipo)}
                 />
               ))}
             </View>
             <TextInput
               placeholder='Dados da garantia em JSON (ex: {"valor":4000})'
+              placeholderTextColor="#9CA3AF"
               value={garantiaDados}
               onChangeText={setGarantiaDados}
               multiline
               numberOfLines={4}
-              className="border-2 border-border rounded px-3 py-3 bg-card text-primary"
-              style={{ minHeight: 100, textAlignVertical: 'top' }}
+              className="bg-card px-4 py-3 text-primary rounded-xl"
+              style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14, minHeight: 100, textAlignVertical: 'top' }}
             />
             <Button label="Enviar garantia" onPress={enviarGarantia} loading={loadingAction} />
           </View>
         ) : null}
 
         {conviteVinculado && conviteVinculado.candidaturaStatus === 'PENDENTE' && conviteVinculado.garantiaEscolhida != null ? (
-          <View className="rounded px-4 py-4 border-2 border-border bg-surface mb-4">
+          <View className="rounded-xl px-4 py-4 mb-4" style={{ borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#F5F6F8' }}>
             <Text className="text-primary" style={{ fontWeight: '700' }}>Candidatura enviada</Text>
             <Text className="text-muted">Agora aguarde a aprovação do proprietário.</Text>
           </View>
@@ -306,7 +322,7 @@ export default function ConviteLocacaoScreen() {
         ) : null}
 
         {!podeAceitarComConta && !precisaCadastro && !precisaGarantia && !contratoPendenteAssinatura && !error ? (
-          <View className="rounded px-4 py-4 border-2 border-border bg-surface">
+          <View className="rounded-xl px-4 py-4" style={{ borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#F5F6F8' }}>
             <Text className="text-primary" style={{ fontWeight: '700' }}>Sem ações pendentes neste convite.</Text>
             <Text className="text-muted">Se você já possui conta, acesse seu painel para acompanhar o andamento.</Text>
             <View className="mt-3">

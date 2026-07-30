@@ -55,45 +55,53 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 bg-surface">
       <ScrollView contentContainerClassName="flex-1 justify-center p-6">
-        <Text className="text-3xl font-bold text-primary mb-2">Criar conta de proprietário</Text>
-        <Text className="text-muted mb-8">Convites ficam somente para inquilinos.</Text>
+        <Text className="text-primary mb-1" style={{ fontSize: 21, fontWeight: '800' }}>Criar conta de proprietário</Text>
+        <Text className="text-muted mb-2" style={{ fontSize: 13.5 }}>Convites ficam somente para inquilinos.</Text>
 
-        <View className="gap-4">
+        <View className="gap-3">
           <TextInput
             testID="input-register-name"
             placeholder="Username"
+            placeholderTextColor="#9CA3AF"
             value={username}
             onChangeText={setUsername}
-            className="border-2 border-border rounded px-3 py-3 bg-card text-primary"
+            className="bg-card px-4 py-3 text-primary rounded-xl"
+            style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
           />
           <TextInput
             testID="input-register-cpf"
             placeholder="CPF/CNPJ"
+            placeholderTextColor="#9CA3AF"
             value={cpfCnpj}
             onChangeText={onChangeCpfCnpj}
             keyboardType="numeric"
-            className="border-2 border-border rounded px-3 py-3 bg-card text-primary"
+            className="bg-card px-4 py-3 text-primary rounded-xl"
+            style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
           />
-          <Text className="text-muted text-sm">CPF/CNPJ válido (com dígitos verificadores).</Text>
+          <Text className="text-muted" style={{ fontSize: 12.5 }}>CPF/CNPJ válido (com dígitos verificadores).</Text>
           <TextInput
             testID="input-register-email"
             placeholder="E-mail"
+            placeholderTextColor="#9CA3AF"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
-            className="border-2 border-border rounded px-3 py-3 bg-card text-primary"
+            className="bg-card px-4 py-3 text-primary rounded-xl"
+            style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
           />
           <TextInput
             testID="input-register-password"
             placeholder="Senha (mínimo 8 caracteres)"
+            placeholderTextColor="#9CA3AF"
             value={senha}
             onChangeText={setSenha}
             secureTextEntry
-            className="border-2 border-border rounded px-3 py-3 bg-card text-primary"
+            className="bg-card px-4 py-3 text-primary rounded-xl"
+            style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
           />
-          <Text className="text-muted text-sm">Use pelo menos 8 caracteres, com letra e número.</Text>
-          {error ? <Text className="text-danger text-sm">{error}</Text> : null}
+          <Text className="text-muted" style={{ fontSize: 12.5 }}>Use pelo menos 8 caracteres, com letra e número.</Text>
+          {error ? <Text style={{ color: '#DC2626', fontSize: 13 }}>{error}</Text> : null}
           <Button testID="btn-register-owner" label="Criar conta" onPress={register} loading={loading} disabled={!canSubmit} />
           <Button label="Voltar ao login" onPress={() => router.replace('/login')} variant="outline" />
         </View>

@@ -9,17 +9,19 @@ export default function ConviteManualScreen() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 bg-surface">
       <ScrollView contentContainerClassName="flex-1 justify-center p-6">
-        <Text className="text-3xl font-bold text-primary mb-2">Abrir Convite de Inquilino</Text>
-        <Text className="text-muted mb-8">Cole o token recebido para finalizar o acesso do inquilino.</Text>
+        <Text className="text-primary mb-1" style={{ fontSize: 21, fontWeight: '800' }}>Abrir convite de inquilino</Text>
+        <Text className="text-muted mb-2" style={{ fontSize: 13.5 }}>Cole o token recebido para finalizar seu acesso.</Text>
 
-        <View className="gap-4">
+        <View className="gap-3">
           <TextInput
             testID="input-invite-token"
             placeholder="Token do convite"
+            placeholderTextColor="#9CA3AF"
             value={token}
             onChangeText={setToken}
             autoCapitalize="none"
-            className="border-2 border-border rounded px-3 py-3 bg-card text-primary"
+            className="bg-card px-4 py-3 text-primary rounded-xl"
+            style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
           />
           <Button
             testID="btn-open-invite"

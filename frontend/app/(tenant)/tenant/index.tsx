@@ -128,10 +128,12 @@ export default function TenantHomeScreen() {
         <View className="gap-3">
           <TextInput
             placeholder="Cole o token de convite"
+            placeholderTextColor="#9CA3AF"
             value={tokenInput}
             onChangeText={setTokenInput}
             autoCapitalize="none"
-            className="border-2 border-border rounded px-3 py-3 bg-card text-primary"
+            className="bg-card px-4 py-3 text-primary rounded-xl"
+            style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
           />
           <Button
             label="Abrir convite"
@@ -150,7 +152,7 @@ export default function TenantHomeScreen() {
         ) : (
           <View className="gap-3">
             {convites.map((item) => (
-              <View key={item.candidaturaId} className="border-2 border-border rounded px-3 py-3 bg-card gap-2">
+              <View key={item.candidaturaId} className="bg-card rounded-xl px-4 py-3 gap-2" style={{ borderWidth: 1, borderColor: '#E5E7EB' }}>
                 <View className="flex-row items-center justify-between gap-2">
                   <Text className="text-primary" style={{ fontWeight: '700' }}>
                     {formatTipo(item.tipoContrato)}
@@ -191,7 +193,7 @@ export default function TenantHomeScreen() {
               <View key={grupo.titulo} className="gap-2">
                 <Text className="text-primary" style={{ fontSize: 14, fontWeight: '700' }}>{grupo.titulo}</Text>
                 {grupo.itens.map((contrato) => (
-                  <View key={contrato.id} className="border-2 border-border rounded px-3 py-3 bg-card gap-2">
+                  <View key={contrato.id} className="bg-card rounded-xl px-4 py-3 gap-2" style={{ borderWidth: 1, borderColor: '#E5E7EB' }}>
                     <View className="flex-row items-center justify-between">
                       <Text className="text-primary" style={{ fontWeight: '700' }}>Contrato {contrato.id}</Text>
                       <StatusBadge status={contrato.statusAssinatura} />

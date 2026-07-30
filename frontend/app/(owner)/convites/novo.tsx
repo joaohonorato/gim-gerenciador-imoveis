@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, ScrollView, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { apiFetch } from '@/api/client';
@@ -6,6 +6,7 @@ import { Imovel } from '@/api/types';
 import { Button } from '@/design/Button';
 import { Card } from '@/design/Card';
 import { StatusBadge } from '@/design/StatusBadge';
+import { Pill } from '@/design/Pill';
 
 type UnidadeStatus = 'VAGO' | 'RESERVADO' | 'ALUGADO' | 'MANUTENCAO';
 type BadgeStatus = 'VAGO' | 'RESERVADO' | 'ALUGADO';
@@ -20,6 +21,7 @@ type Filtros = {
 
 export default function NovoConviteScreen() {
   const [imoveis, setImoveis] = useState<Imovel[]>([]);
+  const [todosImoveis, setTodosImoveis] = useState<Imovel[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [filtros, setFiltros] = useState<Filtros>({
@@ -28,6 +30,15 @@ export default function NovoConviteScreen() {
     status: 'VAGO',
     tipoImovel: '',
   });
+
+  useEffect(() => {
+    apiFetch<Imovel[]>('/imoveis').then(setTodosImoveis).catch(() => {});
+  }, []);
+
+  const cidades = useMemo(
+    () => [...new Set(todosImoveis.map((imovel) => imovel.cidade).filter(Boolean))].sort(),
+    [todosImoveis],
+  );
 
   const carregarImoveis = useCallback(async () => {
     setLoading(true);
@@ -63,26 +74,36 @@ export default function NovoConviteScreen() {
         <Card className="gap-3">
           <TextInput
             placeholder="Buscar por endereço, matrícula, bairro ou número"
+            placeholderTextColor="#9CA3AF"
             value={filtros.busca}
             onChangeText={(busca) => setFiltros((atual) => ({ ...atual, busca }))}
-            className="border-2 border-border rounded px-3 py-3 bg-card text-primary"
+            className="bg-card px-4 py-3 text-primary rounded-xl"
+            style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
           />
 
-          <TextInput
-            placeholder="Cidade"
-            value={filtros.cidade}
-            onChangeText={(cidade) => setFiltros((atual) => ({ ...atual, cidade }))}
-            className="border-2 border-border rounded px-3 py-3 bg-card text-primary"
-          />
+          <View className="gap-2">
+            <Text className="text-muted">Cidade</Text>
+            <View className="flex-row gap-2" style={{ flexWrap: 'wrap' }}>
+              <Pill label="Todas" selected={filtros.cidade === ''} onPress={() => setFiltros((atual) => ({ ...atual, cidade: '' }))} />
+              {cidades.map((cidade) => (
+                <Pill
+                  key={cidade}
+                  label={cidade}
+                  selected={filtros.cidade === cidade}
+                  onPress={() => setFiltros((atual) => ({ ...atual, cidade }))}
+                />
+              ))}
+            </View>
+          </View>
 
           <View className="gap-2">
             <Text className="text-muted">Status</Text>
             <View className="flex-row gap-2" style={{ flexWrap: 'wrap' }}>
               {(['', 'VAGO', 'RESERVADO', 'ALUGADO'] as const).map((status) => (
-                <Button
+                <Pill
                   key={status || 'TODOS'}
                   label={status || 'Todos'}
-                  variant={filtros.status === status ? 'primary' : 'outline'}
+                  selected={filtros.status === status}
                   onPress={() => setFiltros((atual) => ({ ...atual, status }))}
                 />
               ))}
@@ -93,10 +114,10 @@ export default function NovoConviteScreen() {
             <Text className="text-muted">Tipo do imóvel</Text>
             <View className="flex-row gap-2" style={{ flexWrap: 'wrap' }}>
               {(['', 'CASA', 'APARTAMENTO', 'COMERCIAL', 'OUTRO'] as const).map((tipoImovel) => (
-                <Button
+                <Pill
                   key={tipoImovel || 'TODOS'}
                   label={tipoImovel || 'Todos'}
-                  variant={filtros.tipoImovel === tipoImovel ? 'primary' : 'outline'}
+                  selected={filtros.tipoImovel === tipoImovel}
                   onPress={() => setFiltros((atual) => ({ ...atual, tipoImovel }))}
                 />
               ))}
@@ -104,7 +125,7 @@ export default function NovoConviteScreen() {
           </View>
 
           <View className="flex-row gap-2">
-            <Button label="Buscar imóveis" onPress={carregarImoveis} loading={loading} />
+            <Button label="Buscar imóveis" variant="dark" onPress={carregarImoveis} loading={loading} />
             <Button
               label="Limpar"
               variant="outline"
@@ -112,8 +133,8 @@ export default function NovoConviteScreen() {
             />
           </View>
 
-          <Text className="text-muted">Resultado: {imoveis.length} imóveis ({totalVagos} vagos)</Text>
-          {error ? <Text style={{ color: '#DC2626' }}>{error}</Text> : null}
+          <Text className="text-muted" style={{ fontSize: 12.5 }}>Resultado: {imoveis.length} imóveis ({totalVagos} vagos)</Text>
+          {error ? <Text style={{ color: '#DC2626', fontSize: 13 }}>{error}</Text> : null}
         </Card>
       </ScrollView>
 

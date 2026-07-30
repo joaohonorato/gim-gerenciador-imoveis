@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { View, Text, TextInput, ScrollView, Pressable } from 'react-native';
+import { View, Text, TextInput, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { apiFetch } from '@/api/client';
 import { Imovel } from '@/api/types';
 import { Card } from '@/design/Card';
 import { Button } from '@/design/Button';
+import { Pill } from '@/design/Pill';
 
 export default function NovoImovelScreen() {
   const [endereco, setEndereco] = useState('');
@@ -117,7 +118,7 @@ export default function NovoImovelScreen() {
         <Field label="Tipo do imóvel">
           <View className="flex-row gap-2" style={{ flexWrap: 'wrap' }}>
             {(['CASA', 'APARTAMENTO', 'COMERCIAL', 'OUTRO'] as const).map((tipo) => (
-              <TogglePill
+              <Pill
                 key={tipo}
                 label={tipo}
                 selected={tipoImovel === tipo}
@@ -129,8 +130,8 @@ export default function NovoImovelScreen() {
 
         <Field label="Visibilidade">
           <View className="flex-row gap-2">
-            <TogglePill label="Público" selected={visibilidade === 'PUBLICO'} onPress={() => setVisibilidade('PUBLICO')} />
-            <TogglePill label="Privado" selected={visibilidade === 'PRIVADO'} onPress={() => setVisibilidade('PRIVADO')} />
+            <Pill label="Público" selected={visibilidade === 'PUBLICO'} onPress={() => setVisibilidade('PUBLICO')} />
+            <Pill label="Privado" selected={visibilidade === 'PRIVADO'} onPress={() => setVisibilidade('PRIVADO')} />
           </View>
         </Field>
 
@@ -148,21 +149,5 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <Text className="mb-2" style={{ color: '#374151', fontSize: 13, fontWeight: '600' }}>{label}</Text>
       {children}
     </View>
-  );
-}
-
-function TogglePill({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="px-4 py-3 rounded-xl"
-      style={{
-        backgroundColor: selected ? '#2563EB' : '#FFFFFF',
-        borderWidth: selected ? 0 : 1.5,
-        borderColor: '#E5E7EB',
-      }}
-    >
-      <Text style={{ color: selected ? '#FFFFFF' : '#374151', fontSize: 14, fontWeight: '600' }}>{label}</Text>
-    </Pressable>
   );
 }

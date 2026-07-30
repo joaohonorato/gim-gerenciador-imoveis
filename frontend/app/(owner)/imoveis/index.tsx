@@ -61,7 +61,7 @@ export default function ImoveisScreen() {
               Acompanhe status e dados de cada imóvel cadastrado.
             </Text>
           </View>
-          <View style={{ minWidth: 142, gap: 8 }}>
+          <View className="gap-2" style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <Button testID="btn-novo-imovel" label="+ Novo imóvel" onPress={() => router.push('/imoveis/novo')} />
             <Button testID="btn-novo-convite" label="+ Novo convite" variant="outline" onPress={() => router.push('/convites/novo')} />
             <Button testID="btn-logout" label="Sair" onPress={logout} variant="outline" loading={loggingOut} disabled={loggingOut} />
@@ -69,8 +69,8 @@ export default function ImoveisScreen() {
         </View>
       </View>
 
-      <View className="px-6 pb-4 gap-3">
-        <StatCard label="Total cadastrados" value={stats.total} color="#111827" />
+      <View className="px-6 pb-4 flex-row gap-3" style={{ flexWrap: 'wrap' }}>
+        <StatCard label="Cadastrados" value={stats.total} color="#111827" />
         <StatCard label="Alugados" value={stats.alugados} color="#2563EB" />
         <StatCard label="Vagos" value={stats.vagos} color="#16A34A" />
       </View>
@@ -120,7 +120,10 @@ export default function ImoveisScreen() {
 
 function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <View className="bg-card rounded-xl p-5" style={{ borderWidth: 1, borderColor: '#E5E7EB' }}>
+    <View
+      className="bg-card rounded-xl p-5"
+      style={{ borderWidth: 1, borderColor: '#E5E7EB', flexGrow: 1, flexBasis: 110, minWidth: 110 }}
+    >
       <Text style={{ color, fontSize: 28, fontWeight: '800' }}>{value}</Text>
       <Text className="text-muted mt-1" style={{ fontSize: 13 }}>{label}</Text>
     </View>

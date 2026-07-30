@@ -70,8 +70,12 @@ test('golden path — proprietário cadastra imóvel, inquilino assina, pagament
   await page.getByTestId('btn-assinar').click();
   await expect(page.getByTestId('btn-assinar')).not.toBeVisible({ timeout: 10_000 });
 
-  // 7. Inquilino assina via API
-  await apiPost(`/contratos/${contrato.id}/assinar`, { parte: 'INQUILINO' }, ownerToken);
+  // 7. Inquilino assina via API (precisa da própria sessão, não a do proprietário)
+  const { sessionToken: tenantToken } = await apiPost<{ sessionToken: string }>('/auth/login', {
+    email: TENANT_EMAIL,
+    senha: 'Senha1234',
+  });
+  await apiPost(`/contratos/${contrato.id}/assinar`, { parte: 'INQUILINO' }, tenantToken);
 
   // 8. Verifica pagamentos gerados
   const pagamentos = await apiGet<Array<{ status: string }>>(`/contratos/${contrato.id}/pagamentos`, ownerToken);
