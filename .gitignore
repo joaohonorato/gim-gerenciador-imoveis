@@ -23,6 +23,7 @@ Thumbs.db
 
 # Local environment
 .env.local
+.env.azure
 
 # Old nested frontend git repo (folded into root repo)
 frontend/.git.bak/
