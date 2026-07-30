@@ -1,0 +1,10 @@
+node_modules/
+.expo/
+dist/
+web-build/
+playwright-report/
+test-results/
+e2e/
+.claude/
+.git.bak/
+*.log

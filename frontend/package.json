@@ -27,6 +27,7 @@
   "scripts": {
     "start": "expo start",
     "web": "expo start --web",
+    "export:web": "expo export --platform web",
     "test:e2e": "playwright test"
   },
   "private": true

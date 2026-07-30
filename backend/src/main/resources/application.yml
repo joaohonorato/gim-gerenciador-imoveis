@@ -34,7 +34,7 @@ micronaut:
 
 datasources:
   default:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:imoveis}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:imoveis}?sslmode=${DB_SSLMODE:prefer}
     driverClassName: ${DB_DRIVER_CLASS_NAME:org.postgresql.Driver}
     username: ${DB_USER:imoveis}
     password: ${DB_PASSWORD:imoveis}
