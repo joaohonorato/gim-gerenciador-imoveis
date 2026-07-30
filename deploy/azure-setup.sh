@@ -151,9 +151,12 @@ SP_OUTPUT="$(az ad sp create-for-rbac \
   --role Contributor \
   --scopes "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$AZURE_RESOURCE_GROUP" \
   --query "[appId,password,tenant]" -o tsv | tr -d '\r')"
-CLIENT_ID="$(echo "$SP_OUTPUT" | cut -f1)"
-CLIENT_SECRET="$(echo "$SP_OUTPUT" | cut -f2)"
-TENANT_ID="$(echo "$SP_OUTPUT" | cut -f3)"
+# `-o tsv` on a flat 3-element array prints one value per line (CRLF on
+# Windows, hence the tr above), not tab-separated on one line — despite
+# the format's name. Extract by line number, not `cut -f`.
+CLIENT_ID="$(echo "$SP_OUTPUT" | sed -n '1p')"
+CLIENT_SECRET="$(echo "$SP_OUTPUT" | sed -n '2p')"
+TENANT_ID="$(echo "$SP_OUTPUT" | sed -n '3p')"
 AZURE_CREDENTIALS_JSON=$(cat <<JSON
 {"clientId":"$CLIENT_ID","clientSecret":"$CLIENT_SECRET","subscriptionId":"$SUBSCRIPTION_ID","tenantId":"$TENANT_ID"}
 JSON
