@@ -30,6 +30,7 @@ frontend/.git.bak/
 
 # Local tool settings (personal/machine-specific override, like .env.local)
 settings.local.json
+.claude/scheduled_tasks.lock
 
 # Local working folders, not versioned
 .junie/

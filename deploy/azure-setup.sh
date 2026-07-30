@@ -13,6 +13,11 @@
 #   ./deploy/azure-setup.sh
 set -euo pipefail
 
+# git-bash/MSYS rewrites leading-slash args (like --scopes /subscriptions/...)
+# into Windows paths unless this is set — without it, az ad sp create-for-rbac
+# gets a mangled scope and fails with MissingSubscription.
+export MSYS_NO_PATHCONV=1
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="$SCRIPT_DIR/.env.azure"
 
