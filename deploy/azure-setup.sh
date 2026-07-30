@@ -55,7 +55,11 @@ if ! gh auth status >/dev/null 2>&1; then
   exit 1
 fi
 
-SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
+# az.cmd on Windows emits CRLF; command substitution only strips the
+# trailing \n, so every `-o tsv` capture below is piped through `tr -d
+# '\r'` — an embedded \r inside AZURE_CREDENTIALS_JSON's tenantId is
+# exactly what broke `azure/login@v2` with "Bad control character".
+SUBSCRIPTION_ID="$(az account show --query id -o tsv | tr -d '\r')"
 echo "==> Subscription ativa: $SUBSCRIPTION_ID"
 
 echo "==> Resource group ($AZURE_RESOURCE_GROUP)..."
@@ -111,7 +115,7 @@ az containerapp update \
   --output none
 
 BACKEND_FQDN="$(az containerapp show --name "$AZURE_CONTAINER_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
-  --query properties.configuration.ingress.fqdn -o tsv)"
+  --query properties.configuration.ingress.fqdn -o tsv | tr -d '\r')"
 BACKEND_URL="https://$BACKEND_FQDN"
 echo "    backend: $BACKEND_URL"
 
@@ -128,7 +132,7 @@ else
 fi
 
 FRONTEND_HOSTNAME="$(az staticwebapp show --name "$AZURE_STATIC_WEB_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
-  --query defaultHostname -o tsv)"
+  --query defaultHostname -o tsv | tr -d '\r')"
 FRONTEND_URL="https://$FRONTEND_HOSTNAME"
 echo "    frontend: $FRONTEND_URL"
 
@@ -146,7 +150,7 @@ SP_OUTPUT="$(az ad sp create-for-rbac \
   --name "$AZURE_SP_NAME" \
   --role Contributor \
   --scopes "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$AZURE_RESOURCE_GROUP" \
-  --query "[appId,password,tenant]" -o tsv)"
+  --query "[appId,password,tenant]" -o tsv | tr -d '\r')"
 CLIENT_ID="$(echo "$SP_OUTPUT" | cut -f1)"
 CLIENT_SECRET="$(echo "$SP_OUTPUT" | cut -f2)"
 TENANT_ID="$(echo "$SP_OUTPUT" | cut -f3)"
@@ -157,7 +161,7 @@ JSON
 
 echo "==> Token de deploy do Static Web App..."
 SWA_TOKEN="$(az staticwebapp secrets list --name "$AZURE_STATIC_WEB_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
-  --query "properties.apiKey" -o tsv)"
+  --query "properties.apiKey" -o tsv | tr -d '\r')"
 
 echo "==> Publicando GitHub Secrets em $GITHUB_REPO..."
 gh secret set AZURE_CREDENTIALS --repo "$GITHUB_REPO" --body "$AZURE_CREDENTIALS_JSON"
