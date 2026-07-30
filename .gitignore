@@ -15,6 +15,7 @@ frontend/test-results/
 # IDE
 .idea/
 *.iml
+.vscode/
 
 # OS
 .DS_Store
@@ -26,8 +27,8 @@ Thumbs.db
 # Old nested frontend git repo (folded into root repo)
 frontend/.git.bak/
 
-# Local tool settings (not project-relevant)
-.claude/settings.local.json
+# Local tool settings (personal/machine-specific override, like .env.local)
+settings.local.json
 
 # Local working folders, not versioned
 .junie/
