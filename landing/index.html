@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gestão de Imóveis — do convite ao contrato assinado</title>
+<meta name="description" content="A plataforma que leva um imóvel do cadastro ao contrato assinado, com convite fechado, garantia digital, assinatura eletrônica e pagamentos organizados." />
+<style>
+  :root {
+    --ink: #10151F;
+    --ink-soft: #333B49;
+    --paper: #F4F5F7;
+    --card: #FFFFFF;
+    --line: #E3E6EB;
+    --line-strong: #C9CED8;
+    --signal: #2563EB;
+    --signal-ink: #0E2699;
+    --signal-tint: #E9EFFD;
+    --tenant: #166534;
+    --tenant-tint: #E7F5EC;
+    --muted: #6B7280;
+    --warn: #B45309;
+    --warn-tint: #FBF0E3;
+    --danger: #B42318;
+
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "URW Palladio L", Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+
+    --radius: 10px;
+    --radius-lg: 14px;
+    --shadow-card: 0 1px 2px rgba(16, 21, 31, 0.04), 0 8px 24px -12px rgba(16, 21, 31, 0.12);
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #F1F3F6;
+      --ink-soft: #C7CCD6;
+      --paper: #0A0E15;
+      --card: #131926;
+      --line: #232B3A;
+      --line-strong: #2E3850;
+      --signal: #6C8CFF;
+      --signal-ink: #A9BAFF;
+      --signal-tint: #182238;
+      --tenant: #4ADE80;
+      --tenant-tint: #132318;
+      --muted: #93A0B4;
+      --warn: #F2B705;
+      --warn-tint: #241D0C;
+      --danger: #F0685F;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #F1F3F6; --ink-soft: #C7CCD6; --paper: #0A0E15; --card: #131926;
+    --line: #232B3A; --line-strong: #2E3850; --signal: #6C8CFF; --signal-ink: #A9BAFF;
+    --signal-tint: #182238; --tenant: #4ADE80; --tenant-tint: #132318; --muted: #93A0B4;
+    --warn: #F2B705; --warn-tint: #241D0C; --danger: #F0685F;
+    color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --ink: #10151F; --ink-soft: #333B49; --paper: #F4F5F7; --card: #FFFFFF;
+    --line: #E3E6EB; --line-strong: #C9CED8; --signal: #2563EB; --signal-ink: #0E2699;
+    --signal-tint: #E9EFFD; --tenant: #166534; --tenant-tint: #E7F5EC; --muted: #6B7280;
+    --warn: #B45309; --warn-tint: #FBF0E3; --danger: #B42318;
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  ::selection { background: var(--signal-tint); color: var(--signal-ink); }
+
+  a { color: inherit; }
+  h1, h2, h3 { font-family: var(--serif); font-weight: 600; text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+
+  a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--signal);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
+  @media (max-width: 640px) { .wrap { padding: 0 20px; } }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ---------- Nav ---------- */
+  header.site {
+    position: sticky; top: 0; z-index: 20;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 28px;
+    max-width: 1120px; margin: 0 auto;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 19px; font-weight: 600; }
+  .brand .mark {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: var(--ink); color: var(--paper);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--sans); font-weight: 700; font-size: 13px;
+  }
+  .nav-links { display: flex; align-items: center; gap: 28px; font-size: 14.5px; }
+  .nav-links a { text-decoration: none; color: var(--ink-soft); }
+  .nav-links a:hover { color: var(--ink); }
+  @media (max-width: 720px) { .nav-links .hide-sm { display: none; } }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: var(--sans); font-weight: 600; font-size: 14.5px;
+    padding: 10px 18px; border-radius: 9px;
+    text-decoration: none; border: 1.5px solid transparent;
+    cursor: pointer;
+    transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: var(--signal); color: #fff; }
+  .btn-primary:hover { background: var(--signal-ink); }
+  .btn-outline { background: transparent; color: var(--ink); border-color: var(--line-strong); }
+  .btn-outline:hover { border-color: var(--ink-soft); }
+  .btn-sm { padding: 7px 13px; font-size: 13.5px; }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 76px 0 48px; }
+  .hero-grid {
+    display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center;
+  }
+  @media (max-width: 900px) { .hero-grid { grid-template-columns: 1fr; gap: 40px; } }
+
+  .hero h1 {
+    font-size: clamp(32px, 4.4vw, 52px);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    margin-bottom: 22px;
+  }
+  .hero .lede {
+    font-size: 17px;
+    color: var(--ink-soft);
+    max-width: 46ch;
+    margin-bottom: 30px;
+  }
+  .hero .cta-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+  .hero .cta-note { font-size: 13px; color: var(--muted); }
+
+  /* pipeline strip */
+  .pipeline {
+    margin-top: 56px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+    display: flex; align-items: center; gap: 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    overflow-x: auto;
+  }
+  .pipeline .node { white-space: nowrap; padding: 4px 0; }
+  .pipeline .seg { flex: 1; min-width: 20px; height: 1px; background: var(--line-strong); margin: 0 12px; position: relative; top: 1px; }
+
+  /* product peek card */
+  .peek {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    padding: 22px;
+  }
+  .peek-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+  .peek-title { font-family: var(--sans); font-weight: 700; font-size: 15px; }
+  .peek-sub { font-family: var(--sans); font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .stat-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .stat {
+    flex: 1; border: 1px solid var(--line); border-radius: 9px; padding: 12px 14px;
+    font-family: var(--sans);
+  }
+  .stat .n { font-size: 21px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .stat.-signal .n { color: var(--signal); }
+  .stat.-tenant .n { color: var(--tenant); }
+
+  .row-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 0; border-top: 1px solid var(--line);
+    font-family: var(--sans); font-size: 13.5px;
+  }
+  .row-item:first-of-type { border-top: none; }
+  .row-item .addr { font-weight: 600; }
+  .row-item .meta { color: var(--muted); font-size: 12.5px; margin-top: 1px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .pill { display: inline-flex; align-items: center; font-size: 12.5px; font-weight: 600; }
+  .pill.-ok { color: var(--tenant); }
+  .pill.-warn { color: var(--warn); }
+  .pill.-signal { color: var(--signal); }
+  .pill .dot.-ok { background: var(--tenant); }
+  .pill .dot.-warn { background: var(--warn); }
+  .pill .dot.-signal { background: var(--signal); }
+
+  /* ---------- Persona sections ---------- */
+  .persona { padding: 88px 0; border-top: 1px solid var(--line); }
+  .persona-tenant { background: color-mix(in srgb, var(--tenant-tint) 55%, var(--paper)); }
+  .persona-head { max-width: 62ch; margin-bottom: 52px; }
+  .persona-head h2 { font-size: clamp(26px, 3vw, 36px); margin: 10px 0 16px; }
+  .persona-head p { color: var(--ink-soft); font-size: 16px; }
+
+  .steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; border-top: 1px solid var(--line); }
+  .persona-tenant .steps { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 940px) { .steps { grid-template-columns: 1fr; } }
+
+  .step {
+    padding: 26px 22px 26px 0;
+    border-right: 1px solid var(--line);
+    position: relative;
+  }
+  .steps > .step:last-child { border-right: none; }
+  @media (max-width: 940px) {
+    .step { border-right: none; border-bottom: 1px solid var(--line); padding: 22px 0; }
+    .steps > .step:last-child { border-bottom: none; }
+  }
+  .step .num {
+    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    display: block; margin-bottom: 12px;
+  }
+  .persona-owner .step .num { color: var(--signal); }
+  .persona-tenant .step .num { color: var(--tenant); }
+  .step h3 { font-family: var(--sans); font-size: 15.5px; font-weight: 700; margin-bottom: 8px; line-height: 1.3; }
+  .step p { font-size: 13.5px; color: var(--ink-soft); }
+
+  /* ---------- Trust band ---------- */
+  .trust { padding: 64px 0; border-top: 1px solid var(--line); }
+  .trust-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px; }
+  @media (max-width: 760px) { .trust-grid { grid-template-columns: 1fr; gap: 28px; } }
+  .trust-item .eyebrow { margin-bottom: 10px; }
+  .trust-item p { font-size: 14px; color: var(--ink-soft); }
+  .trust-item h4 { font-family: var(--sans); font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+
+  /* ---------- Final CTA ---------- */
+  .final { padding: 90px 0 100px; border-top: 1px solid var(--line); text-align: center; }
+  .final h2 { font-size: clamp(28px, 3.6vw, 42px); max-width: 26ch; margin: 0 auto 18px; }
+  .final p { color: var(--ink-soft); max-width: 48ch; margin: 0 auto 32px; }
+  .final .cta-row { justify-content: center; }
+
+  footer.site {
+    border-top: 1px solid var(--line);
+    padding: 28px 0 40px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .foot-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .foot-links { display: flex; gap: 20px; }
+  .foot-links a { text-decoration: none; color: var(--muted); }
+  .foot-links a:hover { color: var(--ink-soft); }
+
+  /* reveal */
+  .reveal { opacity: 0; transform: translateY(10px); transition: opacity 560ms ease, transform 560ms ease; }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <nav class="nav">
+    <div class="brand"><span class="mark">GI</span>Gestão de Imóveis</div>
+    <div class="nav-links">
+      <a class="hide-sm" href="#proprietario">Para proprietários</a>
+      <a class="hide-sm" href="#inquilino">Para inquilinos</a>
+      <a href="https://app.gim-imoveis.com/login" class="btn btn-outline btn-sm">Entrar</a>
+      <a href="https://app.gim-imoveis.com/register" class="btn btn-primary btn-sm">Cadastrar imóvel</a>
+    </div>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <p class="eyebrow" style="margin-bottom:18px;">Gestão de imóveis para locação</p>
+        <h1>Cada imóvel, cada contrato,<br>cada pagamento — num só lugar.</h1>
+        <p class="lede">Convide o inquilino certo, gere o contrato com as cláusulas certas, acompanhe a assinatura e os pagamentos. Sem planilha, sem grupo de WhatsApp, sem “depois eu mando o PDF”.</p>
+        <div class="cta-row">
+          <a href="https://app.gim-imoveis.com/register" class="btn btn-primary">Cadastrar meu imóvel</a>
+          <a href="#proprietario" class="btn btn-outline">Ver como funciona</a>
+        </div>
+        <p class="cta-note">Convite fechado — você escolhe quem se candidata, não é anúncio público.</p>
+
+        <div class="pipeline">
+          <span class="node">Cadastro</span><span class="seg"></span>
+          <span class="node">Convite</span><span class="seg"></span>
+          <span class="node">Aprovação</span><span class="seg"></span>
+          <span class="node">Contrato assinado</span><span class="seg"></span>
+          <span class="node">Pagamentos</span>
+        </div>
+      </div>
+
+      <div class="peek" aria-hidden="true">
+        <div class="peek-head">
+          <div>
+            <div class="peek-title">Meus imóveis</div>
+            <div class="peek-sub">Rua das Acácias, 214 e mais 6</div>
+          </div>
+          <a class="btn btn-primary btn-sm" tabindex="-1">+ Novo convite</a>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><div class="n">7</div><div class="l">Cadastrados</div></div>
+          <div class="stat -signal"><div class="n">4</div><div class="l">Alugados</div></div>
+          <div class="stat -tenant"><div class="n">3</div><div class="l">Vagos</div></div>
+        </div>
+        <div>
+          <div class="row-item">
+            <div><div class="addr">Rua das Acácias, 214</div><div class="meta">São Paulo · matrícula 48.219</div></div>
+            <span class="pill -ok"><span class="dot -ok"></span>Alugado</span>
+          </div>
+          <div class="row-item">
+            <div><div class="addr">Av. Ipiranga, 900 · apto 62</div><div class="meta">Porto Alegre · matrícula 11.087</div></div>
+            <span class="pill -warn"><span class="dot -warn"></span>Aguardando assinatura</span>
+          </div>
+          <div class="row-item">
+            <div><div class="addr">Rua Marechal, 55</div><div class="meta">Curitiba · matrícula 90.334</div></div>
+            <span class="pill -signal"><span class="dot -signal"></span>Candidatura em análise</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="persona persona-owner" id="proprietario">
+  <div class="wrap">
+    <div class="persona-head reveal">
+      <p class="eyebrow">Para proprietários</p>
+      <h2>Do imóvel vago ao contrato assinado — sem perder passo.</h2>
+      <p>Você continua no controle de cada decisão. O sistema cuida da parte chata: checar sobreposição de contrato, montar as cláusulas certas pra cada garantia, gerar as 12 parcelas do aluguel.</p>
+    </div>
+
+    <div class="steps reveal">
+      <div class="step">
+        <span class="num">01</span>
+        <h3>Cadastre o imóvel</h3>
+        <p>Endereço, matrícula, tipo. Menos de dois minutos, sem burocracia de marketplace.</p>
+      </div>
+      <div class="step">
+        <span class="num">02</span>
+        <h3>Gere o convite de locação</h3>
+        <p>Você define aluguel, prazo e garantia aceita. Só quem recebe o link consegue se candidatar.</p>
+      </div>
+      <div class="step">
+        <span class="num">03</span>
+        <h3>Aprove com segurança</h3>
+        <p>Contrato sobreposto na mesma unidade é bloqueado automaticamente antes da aprovação.</p>
+      </div>
+      <div class="step">
+        <span class="num">04</span>
+        <h3>Assine pelo celular</h3>
+        <p>Contrato já sai com as cláusulas certas pro tipo de garantia escolhida — caução, fiador ou seguro-fiança.</p>
+      </div>
+      <div class="step">
+        <span class="num">05</span>
+        <h3>Acompanhe tudo</h3>
+        <p>12 parcelas geradas na assinatura, status de cada uma, chamados de manutenção no mesmo painel.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="persona persona-tenant" id="inquilino">
+  <div class="wrap">
+    <div class="persona-head reveal">
+      <p class="eyebrow" style="color:var(--tenant);">Para inquilinos</p>
+      <h2>Um convite. Um app. Sem ir ao cartório pra cada assinatura.</h2>
+      <p>Você recebe o link, já vê as condições do imóvel, manda sua garantia e assina — tudo pelo celular, sem imprimir nada.</p>
+    </div>
+
+    <div class="steps reveal">
+      <div class="step">
+        <span class="num">01</span>
+        <h3>Abra o convite</h3>
+        <p>O proprietário te convida com um link. As condições do imóvel já vêm junto: aluguel, prazo, garantia aceita.</p>
+      </div>
+      <div class="step">
+        <span class="num">02</span>
+        <h3>Envie sua garantia</h3>
+        <p>Caução, fiador ou seguro-fiança — direto pelo celular, sem levar papel a lugar nenhum.</p>
+      </div>
+      <div class="step">
+        <span class="num">03</span>
+        <h3>Acompanhe a candidatura</h3>
+        <p>Status atualizado em tempo real, sem precisar ligar pra saber se foi aprovado.</p>
+      </div>
+      <div class="step">
+        <span class="num">04</span>
+        <h3>Assine e pronto</h3>
+        <p>Contrato, pagamentos e chamados de manutenção, tudo reunido na sua área do inquilino.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="trust">
+  <div class="wrap">
+    <div class="trust-grid reveal">
+      <div class="trust-item">
+        <p class="eyebrow">Privacidade</p>
+        <h4>Cada carteira é isolada</h4>
+        <p>Um proprietário nunca enxerga dados de imóvel, contrato ou inquilino de outro. Tratamento de dados alinhado à LGPD.</p>
+      </div>
+      <div class="trust-item">
+        <p class="eyebrow">Assinatura</p>
+        <h4>Assinatura eletrônica avançada</h4>
+        <p>Contrato com validade jurídica, sem depender de ICP-Brasil — o mesmo padrão usado por cartórios digitais.</p>
+      </div>
+      <div class="trust-item">
+        <p class="eyebrow">Custódia</p>
+        <h4>A plataforma nunca retém dinheiro</h4>
+        <p>Aluguel e caução seguem instruções claras entre as partes. Cobrança é assinatura fixa por imóvel, não comissão.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <h2 class="reveal">Seu próximo inquilino pode assinar o contrato esta semana.</h2>
+    <p class="reveal">Cadastre o primeiro imóvel agora — o convite de locação fica pronto em minutos.</p>
+    <div class="cta-row reveal">
+      <a href="https://app.gim-imoveis.com/register" class="btn btn-primary">Cadastrar meu imóvel</a>
+      <a href="https://app.gim-imoveis.com/login" class="btn btn-outline">Já tenho conta</a>
+    </div>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap foot-row">
+    <div>© 2026 Gestão de Imóveis</div>
+    <div class="foot-links">
+      <a href="https://app.gim-imoveis.com/login">Entrar</a>
+      <a href="#proprietario">Proprietários</a>
+      <a href="#inquilino">Inquilinos</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var els = document.querySelectorAll('.reveal');
+    if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      els.forEach(function (el) { el.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    els.forEach(function (el) { io.observe(el); });
+  })();
+</script>
+</body>
+</html>

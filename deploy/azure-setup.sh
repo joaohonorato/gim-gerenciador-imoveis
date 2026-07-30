@@ -38,7 +38,7 @@ fi
 set -a; source "$ENV_FILE"; set +a
 
 for var in AZURE_LOCATION AZURE_RESOURCE_GROUP AZURE_CONTAINERAPPS_ENV AZURE_CONTAINER_APP_NAME \
-           AZURE_STATIC_WEB_APP_NAME AZURE_SP_NAME GITHUB_REPO \
+           AZURE_STATIC_WEB_APP_NAME AZURE_LANDING_APP_NAME AZURE_SP_NAME GITHUB_REPO \
            SUPABASE_DB_HOST SUPABASE_DB_USER SUPABASE_DB_PASSWORD SUPABASE_DB_NAME; do
   if [ -z "${!var:-}" ]; then
     echo "Variável obrigatória vazia em $ENV_FILE: $var" >&2
@@ -145,6 +145,27 @@ az containerapp update \
     "APP_CONVITES_FRONTEND_BASE_URL=$FRONTEND_URL" \
   --output none
 
+echo "==> Static Web App da landing page ($AZURE_LANDING_APP_NAME)..."
+if ! az staticwebapp show --name "$AZURE_LANDING_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" >/dev/null 2>&1; then
+  az staticwebapp create \
+    --name "$AZURE_LANDING_APP_NAME" \
+    --resource-group "$AZURE_RESOURCE_GROUP" \
+    --location "$AZURE_LOCATION" \
+    --sku Free \
+    --output none
+else
+  echo "    já existe, pulando."
+fi
+
+LANDING_HOSTNAME="$(az staticwebapp show --name "$AZURE_LANDING_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+  --query defaultHostname -o tsv | tr -d '\r')"
+LANDING_URL="https://$LANDING_HOSTNAME"
+echo "    landing: $LANDING_URL"
+
+LANDING_SWA_TOKEN="$(az staticwebapp secrets list --name "$AZURE_LANDING_APP_NAME" --resource-group "$AZURE_RESOURCE_GROUP" \
+  --query "properties.apiKey" -o tsv | tr -d '\r')"
+gh secret set AZURE_LANDING_STATIC_WEB_APPS_API_TOKEN --repo "$GITHUB_REPO" --body "$LANDING_SWA_TOKEN"
+
 echo "==> Service principal para o GitHub Actions ($AZURE_SP_NAME)..."
 SP_OUTPUT="$(az ad sp create-for-rbac \
   --name "$AZURE_SP_NAME" \
@@ -179,8 +200,10 @@ cat <<SUMMARY
 ==> Pronto.
     Backend (Container App):   $BACKEND_URL
     Frontend (Static Web App): $FRONTEND_URL
+    Landing (Static Web App):  $LANDING_URL
     Secrets publicados em $GITHUB_REPO: AZURE_CREDENTIALS, AZURE_RESOURCE_GROUP,
-    AZURE_CONTAINERAPPS_ENV, AZURE_STATIC_WEB_APPS_API_TOKEN, EXPO_PUBLIC_API_URL.
+    AZURE_CONTAINERAPPS_ENV, AZURE_CONTAINER_APP_NAME, AZURE_STATIC_WEB_APPS_API_TOKEN,
+    AZURE_LANDING_STATIC_WEB_APPS_API_TOKEN, EXPO_PUBLIC_API_URL.
 
     Próximo passo: dar push na main (ou re-rodar os workflows) pra disparar
     o primeiro deploy real do backend e do frontend — os dois workflows em

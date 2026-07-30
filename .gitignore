@@ -35,3 +35,4 @@ settings.local.json
 # Local working folders, not versioned
 .junie/
 design_handoff_portal_redesign/
+.claude/settings.json

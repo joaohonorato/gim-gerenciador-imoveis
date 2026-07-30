@@ -1,6 +1,8 @@
 # Deploy no Azure + Supabase
 
-Arquitetura: **frontend** no Azure Static Web Apps (plano Free), **backend** no Azure Container Apps (plano Consumption, imagem no GHCR), **banco** no Supabase (Postgres gerenciado, fora do Azure — Azure não tem tier always-free de Postgres gerenciado). Provisionamento dos recursos via `deploy/azure-setup.sh`; deploy contínuo via GitHub Actions (`.github/workflows/azure-static-web-apps.yml` e `azure-container-apps-backend.yml`), disparado por push na `main`.
+Arquitetura: **app** (`frontend/`) no Azure Static Web Apps, **landing page** (`landing/`) em um *segundo* Static Web App, **backend** no Azure Container Apps (plano Consumption, imagem no GHCR), **banco** no Supabase (Postgres gerenciado, fora do Azure — Azure não tem tier always-free de Postgres gerenciado). Provisionamento via `deploy/azure-setup.sh`; deploy contínuo via GitHub Actions (`azure-static-web-apps.yml`, `azure-static-web-apps-landing.yml`, `azure-container-apps-backend.yml`), disparado por push na `main`.
+
+**Por que dois Static Web Apps:** cada recurso Static Web Apps serve **um** conteúdo só, em todos os domínios customizados vinculados a ele — não dá pra ter `gim-imoveis.com` mostrando a landing e `app.gim-imoveis.com` mostrando o app de dentro do mesmo recurso. `gim-frontend` (app real, `frontend/`) fica só em `app.gim-imoveis.com`; `gim-landing` (`landing/`, HTML estático simples, sem build) fica no domínio raiz `gim-imoveis.com`.
 
 ## Ordem de setup
 
@@ -16,7 +18,7 @@ Testado de ponta a ponta contra uma subscription real (não só revisado) — ba
 
 ## Domínio customizado (opcional)
 
-`deploy/azure-custom-domain.sh` — mesmo padrão do `azure-setup.sh`, idempotente, roda depois dele. Preenche `DOMAIN_NAME`/`FRONTEND_SUBDOMAIN`/`BACKEND_SUBDOMAIN` em `deploy/.env.azure` (domínio precisa já estar registrado em algum lugar — Squarespace, Registro.br, etc.; o script não registra domínio, só cria a zona DNS no Azure e delega). Primeira rodada cria a zona + registros (CNAME de `app`/`api` pros recursos existentes, TXT `asuid.api` de verificação do Container Apps) e imprime os 4 nameservers pra configurar no registrador. Depois de trocar lá, roda de novo — ele checa se já propagou (`nslookup -type=NS`) e, se sim, vincula o domínio customizado no Static Web App e no Container App (com certificado gerenciado grátis), atualiza `CORS_ALLOWED_ORIGIN_1`/`APP_CONVITES_FRONTEND_BASE_URL` e republica `EXPO_PUBLIC_API_URL`. Se ainda não propagou, só imprime os nameservers de novo e sai sem erro — seguro rodar quantas vezes precisar.
+`deploy/azure-custom-domain.sh` — mesmo padrão do `azure-setup.sh`, idempotente, roda depois dele. Preenche `DOMAIN_NAME`/`FRONTEND_SUBDOMAIN`/`BACKEND_SUBDOMAIN` em `deploy/.env.azure` (domínio precisa já estar registrado em algum lugar — Squarespace, Registro.br, etc.; o script não registra domínio, só cria a zona DNS no Azure e delega). Primeira rodada cria a zona + registros (CNAME de `app`/`api` pros recursos existentes, TXT `asuid.api` de verificação do Container Apps, alias A record de `@` pro `gim-landing`) e imprime os 4 nameservers pra configurar no registrador. Depois de trocar lá, roda de novo — ele checa se já propagou (`nslookup -type=NS`) e, se sim, vincula `app`/`api` (fluxo CNAME, geralmente resolve numa rodada) e o domínio raiz na landing (fluxo TXT/apex — assíncrono, geralmente leva 2-3 rodadas do script: uma pra pedir o token de validação, outra pra criar o registro TXT depois que a Azure gera o token, uma última pra confirmar `Ready`). Se ainda não propagou nada, só imprime os nameservers de novo e sai sem erro — seguro rodar quantas vezes precisar. Se o domínio raiz ainda estiver vinculado ao `gim-frontend` de uma rodada anterior a existir a landing separada, o script desvincula de lá antes de vincular na landing.
 
 Depois que vincular, dispara o workflow do frontend novamente (`gh workflow run azure-static-web-apps.yml`) — `EXPO_PUBLIC_API_URL` mudou e é build-time.
 
@@ -48,7 +50,8 @@ Todos publicados automaticamente por `deploy/azure-setup.sh` — a tabela é só
 |---|---|---|
 | `AZURE_CREDENTIALS` | workflow do backend | service principal criado pelo script (`az ad sp create-for-rbac`) |
 | `AZURE_RESOURCE_GROUP`, `AZURE_CONTAINERAPPS_ENV`, `AZURE_CONTAINER_APP_NAME` | workflow do backend | nomes definidos em `deploy/.env.azure` |
-| `AZURE_STATIC_WEB_APPS_API_TOKEN` | workflow do frontend | `az staticwebapp secrets list` |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN` | workflow do frontend (app) | `az staticwebapp secrets list -n $AZURE_STATIC_WEB_APP_NAME` |
+| `AZURE_LANDING_STATIC_WEB_APPS_API_TOKEN` | workflow da landing | `az staticwebapp secrets list -n $AZURE_LANDING_APP_NAME` |
 | `EXPO_PUBLIC_API_URL` | workflow do frontend | URL pública do Container App, resolvida pelo script |
 | `GHCR_PAT` | workflow do backend | **manual, não publicado pelo script** — PAT clássico (github.com/settings/tokens/new) com escopo `write:packages` (inclui read), sem expiração curta. Ver gotcha 6, é obrigatório, não opcional. |
 
