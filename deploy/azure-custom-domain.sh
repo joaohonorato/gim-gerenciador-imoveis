@@ -141,12 +141,17 @@ else
 fi
 
 echo "==> Vinculando domínio customizado + certificado gerenciado no Container App..."
-az containerapp hostname add \
-  --hostname "$BACKEND_DOMAIN" --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_CONTAINER_APP_NAME" \
-  --output none
-az containerapp hostname bind \
-  --hostname "$BACKEND_DOMAIN" --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_CONTAINER_APP_NAME" \
-  --environment "$AZURE_CONTAINERAPPS_ENV" --validation-method CNAME --output none
+if ! az containerapp hostname list --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_CONTAINER_APP_NAME" \
+     --query "[?name=='$BACKEND_DOMAIN']" -o tsv | grep -q .; then
+  az containerapp hostname add \
+    --hostname "$BACKEND_DOMAIN" --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_CONTAINER_APP_NAME" \
+    --output none
+  az containerapp hostname bind \
+    --hostname "$BACKEND_DOMAIN" --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_CONTAINER_APP_NAME" \
+    --environment "$AZURE_CONTAINERAPPS_ENV" --validation-method CNAME --output none
+else
+  echo "    já vinculado, pulando."
+fi
 
 echo "==> Atualizando CORS do backend pro domínio customizado..."
 az containerapp update \
