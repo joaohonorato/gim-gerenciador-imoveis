@@ -1,0 +1,66 @@
+micronaut:
+  application:
+    name: ${APP_NAME:gerenciador-imoveis}
+  server:
+    port: ${APP_PORT:8080}
+    cors:
+      enabled: ${CORS_ENABLED:true}
+      configurations:
+        web:
+          allowedOrigins:
+            - ${CORS_ALLOWED_ORIGIN_1:http://localhost:19006}
+            - ${CORS_ALLOWED_ORIGIN_2:http://localhost:8081}
+          allowedMethods:
+            - GET
+            - POST
+            - PATCH
+            - PUT
+            - DELETE
+            - OPTIONS
+          allowedHeaders:
+            - Authorization
+            - Content-Type
+  router:
+    static-resources:
+      swagger:
+        paths: classpath:META-INF/swagger
+        mapping: /swagger/**
+      swagger-ui:
+        paths: classpath:META-INF/swagger/views/swagger-ui
+        mapping: /swagger-ui/**
+      redoc:
+        paths: classpath:META-INF/swagger/views/redoc
+        mapping: /redoc/**
+
+datasources:
+  default:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:imoveis}
+    driverClassName: ${DB_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    username: ${DB_USER:imoveis}
+    password: ${DB_PASSWORD:imoveis}
+    schema-generate: ${DB_SCHEMA_GENERATE:NONE}
+    dialect: ${DB_DIALECT:POSTGRES}
+
+jpa:
+  default:
+    entity-scan:
+      packages:
+        - br.com.imoveis.infrastructure.persistence.jpa
+    properties:
+      hibernate:
+        hbm2ddl:
+          auto: ${HIBERNATE_DDL_AUTO:update}
+        show_sql: ${HIBERNATE_SHOW_SQL:false}
+        format_sql: ${HIBERNATE_FORMAT_SQL:false}
+
+app:
+  auth:
+    session-token-ttl-hours: ${APP_AUTH_SESSION_TOKEN_TTL_HOURS:24}
+    magic-link-ttl-days: ${APP_AUTH_MAGIC_LINK_TTL_DAYS:7}
+  convites:
+    frontend-base-url: ${APP_CONVITES_FRONTEND_BASE_URL:http://localhost:19006}
+    resend:
+      api-key: ${RESEND_API_KEY:}
+      from-email: ${RESEND_FROM_EMAIL:no-reply@imoveis.local}
+  test-support:
+    enabled: ${APP_TEST_SUPPORT_ENABLED:true}

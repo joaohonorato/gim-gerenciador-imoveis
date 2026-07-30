@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #F5F6F8; }
+    * { box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; }
+    ::placeholder { color: #9CA3AF; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</helmet>
+
+<div style="min-height:100vh; background:#F5F6F8; position:relative; padding-top:40px;">
+
+  <div style="position:fixed; top:0; left:0; right:0; height:40px; z-index:50; display:flex; align-items:center; justify-content:center; gap:4px; background:#111827; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
+    <button onClick="{{ goLogin }}" style="{{ navBtnStyleLogin }}">Login</button>
+    <button onClick="{{ goImoveis }}" style="{{ navBtnStyleImoveis }}">Imóveis</button>
+    <button onClick="{{ goNovo }}" style="{{ navBtnStyleNovo }}">Novo imóvel</button>
+    <button onClick="{{ goContrato }}" style="{{ navBtnStyleContrato }}">Contrato</button>
+    <button onClick="{{ goConvite }}" style="{{ navBtnStyleConvite }}">Convite inquilino</button>
+  </div>
+
+  <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex; min-height:100vh;">
+      <div style="flex:1 1 46%; background:#111827; position:relative; overflow:hidden; display:flex; flex-direction:column; justify-content:center; padding:64px; color:#fff;">
+        <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 28px);"></div>
+        <div style="position:relative; max-width:420px;">
+          <div style="width:40px; height:40px; background:{{ accentColor }}; border-radius:10px; margin-bottom:28px;"></div>
+          <div style="font-size:34px; font-weight:800; line-height:1.15; margin-bottom:16px;">Gestão de Imóveis</div>
+          <div style="font-size:16px; color:rgba(255,255,255,0.6); line-height:1.6;">Cadastre imóveis, acompanhe contratos e assinaturas em um só lugar — pensado para quem não tem tempo a perder.</div>
+        </div>
+      </div>
+      <div style="flex:1 1 54%; display:flex; align-items:center; justify-content:center; padding:40px; background:#F5F6F8;">
+        <div style="width:100%; max-width:380px;">
+          <div style="font-size:22px; font-weight:700; color:#111827; margin-bottom:6px;">Acessar conta</div>
+          <div style="font-size:14px; color:#6B7280; margin-bottom:32px;">Entre com seu e-mail para receber um link de acesso.</div>
+
+          <sc-if value="{{ isStageEmail }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex; flex-direction:column; gap:14px;">
+              <input type="email" placeholder="E-mail" value="{{ email }}" onChange="{{ setEmail }}" style="border:1.5px solid #E5E7EB; border-radius:10px; padding:13px 16px; font-size:15px; color:#111827; background:#fff; outline:none;"></input>
+              <input type="text" placeholder="Nome (cadastro inicial)" value="{{ nome }}" onChange="{{ setNome }}" style="border:1.5px solid #E5E7EB; border-radius:10px; padding:13px 16px; font-size:15px; color:#111827; background:#fff; outline:none;"></input>
+              <input type="text" placeholder="CPF/CNPJ (cadastro inicial)" value="{{ cpf }}" onChange="{{ setCpf }}" style="border:1.5px solid #E5E7EB; border-radius:10px; padding:13px 16px; font-size:15px; color:#111827; background:#fff; outline:none;"></input>
+              <sc-if value="{{ loginError }}"><div style="color:#DC2626; font-size:13px;">{{ loginError }}</div></sc-if>
+              <button onClick="{{ sendMagicLink }}" disabled="{{ loginLoading }}" style="{{ primaryBtnStyle }}">{{ sendLabel }}</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ isStageCode }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-direction:column; gap:14px;">
+              <div style="font-size:14px; color:#6B7280;">Verifique seu e-mail e cole o código abaixo.</div>
+              <input type="text" placeholder="Código do magic-link" value="{{ code }}" onChange="{{ setCode }}" style="border:1.5px solid #E5E7EB; border-radius:10px; padding:13px 16px; font-size:15px; color:#111827; background:#fff; outline:none;"></input>
+              <sc-if value="{{ loginError }}"><div style="color:#DC2626; font-size:13px;">{{ loginError }}</div></sc-if>
+              <button onClick="{{ verifyCode }}" disabled="{{ loginLoading }}" style="{{ primaryBtnStyle }}">{{ verifyLabel }}</button>
+              <button onClick="{{ backToEmail }}" style="{{ outlineBtnStyle }}">Voltar</button>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isConvite }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:40px;">
+      <div style="width:100%; max-width:520px; background:#fff; border:1px solid #E5E7EB; border-radius:16px; padding:40px; box-shadow:0 20px 50px rgba(17,24,39,0.08);">
+        <sc-if value="{{ conviteNotAccepted }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+            <div style="width:10px; height:10px; border-radius:50%; background:{{ accentColor }};"></div>
+            <div style="font-size:13px; font-weight:600; color:#6B7280; letter-spacing:0.02em; text-transform:uppercase;">Convite de locação</div>
+          </div>
+          <div style="font-size:24px; font-weight:800; color:#111827; margin-bottom:24px;">Revise e assine seu contrato</div>
+
+          <div style="display:flex; flex-direction:column; gap:0; border:1px solid #E5E7EB; border-radius:12px; overflow:hidden; margin-bottom:28px;">
+            <div style="display:flex; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #F0F1F3;"><span style="color:#6B7280; font-size:14px;">Tipo de contrato</span><span style="color:#111827; font-size:14px; font-weight:600;">{{ conviteTipo }}</span></div>
+            <div style="display:flex; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #F0F1F3;"><span style="color:#6B7280; font-size:14px;">Aluguel mensal</span><span style="color:#111827; font-size:14px; font-weight:600;">{{ conviteValor }}</span></div>
+            <div style="display:flex; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #F0F1F3;"><span style="color:#6B7280; font-size:14px;">Período</span><span style="color:#111827; font-size:14px; font-weight:600;">{{ convitePeriodo }}</span></div>
+            <div style="display:flex; justify-content:space-between; padding:14px 18px;"><span style="color:#6B7280; font-size:14px;">Garantia</span><span style="color:#111827; font-size:14px; font-weight:600;">{{ conviteGarantia }}</span></div>
+          </div>
+
+          <label style="display:flex; align-items:flex-start; gap:10px; margin-bottom:22px; cursor:pointer;">
+            <input type="checkbox" checked="{{ conviteChecked }}" onChange="{{ toggleConviteChecked }}" style="margin-top:3px;"></input>
+            <span style="font-size:13px; color:#6B7280; line-height:1.5;">Li e concordo com os termos do contrato de locação descritos acima.</span>
+          </label>
+
+          <button onClick="{{ assinarConvite }}" disabled="{{ conviteSignDisabled }}" style="{{ conviteBtnStyle }}">{{ conviteBtnLabel }}</button>
+        </sc-if>
+        <sc-if value="{{ conviteAccepted }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center; padding:20px 0;">
+            <div style="width:56px; height:56px; border-radius:50%; background:#DCFCE7; display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">
+              <div style="width:22px; height:12px; border-left:3px solid #16A34A; border-bottom:3px solid #16A34A; transform:rotate(-45deg) translate(2px,-2px);"></div>
+            </div>
+            <div style="font-size:20px; font-weight:800; color:#111827; margin-bottom:8px;">Assinatura registrada!</div>
+            <div style="font-size:14px; color:#6B7280; line-height:1.6;">Seu contrato foi assinado como inquilino. Assim que o proprietário assinar, você receberá uma cópia por e-mail.</div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isPortal }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex; min-height:100vh;">
+      <div style="width:248px; flex-shrink:0; background:#111827; color:#fff; display:flex; flex-direction:column; padding:28px 20px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:40px; padding:0 4px;">
+          <div style="width:28px; height:28px; background:{{ accentColor }}; border-radius:8px; flex-shrink:0;"></div>
+          <div style="font-size:15px; font-weight:700; line-height:1.2;">Gestão de<br></br>Imóveis</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
+          <button onClick="{{ goImoveis }}" style="{{ sideNavStyleImoveis }}">
+            <span style="{{ sideDotStyleImoveis }}"></span>
+            <span>Imóveis</span>
+          </button>
+          <button onClick="{{ goContrato }}" style="{{ sideNavStyleContrato }}">
+            <span style="{{ sideDotStyleContrato }}"></span>
+            <span>Contratos</span>
+          </button>
+        </div>
+        <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:16px; display:flex; align-items:center; gap:10px;">
+          <div style="width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.12); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">MP</div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Marina Prado</div>
+            <div style="font-size:11.5px; color:rgba(255,255,255,0.5);">Proprietária</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1; padding:44px 48px; max-width:1180px;">
+
+        <sc-if value="{{ isImoveis }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:32px;">
+            <div>
+              <div style="font-size:24px; font-weight:800; color:#111827; margin-bottom:4px;">Meus imóveis</div>
+              <div style="font-size:14px; color:#6B7280;">Acompanhe status e dados de cada imóvel cadastrado.</div>
+            </div>
+            <button onClick="{{ goNovo }}" style="{{ primaryBtnStyleSmall }}">+ Novo imóvel</button>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:28px;">
+            <div style="background:#fff; border:1px solid #E5E7EB; border-radius:12px; padding:20px;">
+              <div style="font-size:28px; font-weight:800; color:#111827;">{{ statTotal }}</div>
+              <div style="font-size:13px; color:#6B7280; margin-top:4px;">Imóveis cadastrados</div>
+            </div>
+            <div style="background:#fff; border:1px solid #E5E7EB; border-radius:12px; padding:20px;">
+              <div style="font-size:28px; font-weight:800; color:#2563EB;">{{ statAlugados }}</div>
+              <div style="font-size:13px; color:#6B7280; margin-top:4px;">Alugados</div>
+            </div>
+            <div style="background:#fff; border:1px solid #E5E7EB; border-radius:12px; padding:20px;">
+              <div style="font-size:28px; font-weight:800; color:#16A34A;">{{ statVagos }}</div>
+              <div style="font-size:13px; color:#6B7280; margin-top:4px;">Vagos</div>
+            </div>
+          </div>
+
+          <div style="background:#fff; border:1px solid #E5E7EB; border-radius:12px; overflow:hidden;">
+            <div style="display:grid; grid-template-columns:2.2fr 1.3fr 1.3fr 1fr 1fr; gap:12px; padding:14px 20px; background:#FAFAFB; border-bottom:1px solid #E5E7EB; font-size:12px; font-weight:700; color:#6B7280; text-transform:uppercase; letter-spacing:0.03em;">
+              <div>Endereço</div>
+              <div>Cidade</div>
+              <div>Matrícula</div>
+              <div>Visibilidade</div>
+              <div>Status</div>
+            </div>
+            <sc-for list="{{ imoveisView }}" as="item" hint-placeholder-count="4">
+              <div style="display:grid; grid-template-columns:2.2fr 1.3fr 1.3fr 1fr 1fr; gap:12px; padding:16px 20px; border-bottom:1px solid #F0F1F3; align-items:center; font-size:14px;">
+                <div style="color:#111827; font-weight:600;">{{ item.endereco }}</div>
+                <div style="color:#6B7280;">{{ item.cidade }}</div>
+                <div style="color:#6B7280;">{{ item.matricula }}</div>
+                <div style="color:#6B7280;">{{ item.visibilidadeLabel }}</div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="width:7px; height:7px; border-radius:50%; background:{{ item.statusColor }}; flex-shrink:0;"></span>
+                  <span style="color:{{ item.statusColor }}; font-weight:600; font-size:13px;">{{ item.statusLabel }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isNovo }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; align-items:center; gap:14px; margin-bottom:32px;">
+            <button onClick="{{ goImoveis }}" style="{{ outlineBtnStyleSmall }}">← Voltar</button>
+            <div style="font-size:24px; font-weight:800; color:#111827;">Novo imóvel</div>
+          </div>
+          <div style="background:#fff; border:1px solid #E5E7EB; border-radius:12px; padding:32px; max-width:520px;">
+            <div style="display:flex; flex-direction:column; gap:16px;">
+              <div>
+                <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:6px;">Endereço</div>
+                <input type="text" placeholder="Rua, número, bairro" value="{{ endereco }}" onChange="{{ setEndereco }}" style="width:100%; border:1.5px solid #E5E7EB; border-radius:10px; padding:12px 14px; font-size:14px; color:#111827; outline:none;"></input>
+              </div>
+              <div>
+                <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:6px;">Cidade</div>
+                <input type="text" placeholder="Cidade" value="{{ cidade }}" onChange="{{ setCidade }}" style="width:100%; border:1.5px solid #E5E7EB; border-radius:10px; padding:12px 14px; font-size:14px; color:#111827; outline:none;"></input>
+              </div>
+              <div>
+                <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:6px;">Matrícula</div>
+                <input type="text" placeholder="Número da matrícula" value="{{ matricula }}" onChange="{{ setMatricula }}" style="width:100%; border:1.5px solid #E5E7EB; border-radius:10px; padding:12px 14px; font-size:14px; color:#111827; outline:none;"></input>
+              </div>
+              <div>
+                <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:8px;">Visibilidade</div>
+                <div style="display:flex; gap:8px;">
+                  <button onClick="{{ setVisibilidadePublico }}" style="{{ visPublicoStyle }}">Público</button>
+                  <button onClick="{{ setVisibilidadePrivado }}" style="{{ visPrivadoStyle }}">Privado</button>
+                </div>
+              </div>
+              <sc-if value="{{ novoError }}"><div style="color:#DC2626; font-size:13px;">{{ novoError }}</div></sc-if>
+              <button onClick="{{ salvarImovel }}" disabled="{{ novoLoading }}" style="{{ primaryBtnStyle }}">{{ salvarLabel }}</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isContrato }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; align-items:center; gap:14px; margin-bottom:32px;">
+            <button onClick="{{ goImoveis }}" style="{{ outlineBtnStyleSmall }}">← Voltar</button>
+            <div style="font-size:24px; font-weight:800; color:#111827;">Revisar contrato</div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1.4fr 1fr; gap:20px; max-width:820px;">
+            <div style="background:#fff; border:1px solid #E5E7EB; border-radius:12px; padding:24px;">
+              <div style="font-size:15px; font-weight:700; color:#111827; margin-bottom:16px;">Detalhes</div>
+              <div style="display:flex; flex-direction:column; gap:12px; font-size:14px;">
+                <div style="display:flex; justify-content:space-between;"><span style="color:#6B7280;">Tipo</span><span style="color:#111827; font-weight:600;">{{ contratoTipo }}</span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:#6B7280;">Aluguel</span><span style="color:#111827; font-weight:600;">{{ contratoValor }}</span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:#6B7280;">Período</span><span style="color:#111827; font-weight:600;">{{ contratoPeriodo }}</span></div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span style="color:#6B7280;">Status</span>
+                  <span style="display:flex; align-items:center; gap:6px;">
+                    <span style="width:7px; height:7px; border-radius:50%; background:{{ contratoStatusColor }};"></span>
+                    <span style="color:{{ contratoStatusColor }}; font-weight:700; font-size:13px;">{{ contratoStatusLabel }}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div style="background:#fff; border:1px solid #E5E7EB; border-radius:12px; padding:24px;">
+              <div style="font-size:15px; font-weight:700; color:#111827; margin-bottom:16px;">Assinaturas</div>
+              <div style="display:flex; flex-direction:column; gap:14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-size:14px; color:#374151;">Proprietário</span>
+                  <span style="font-size:13px; font-weight:600; color:{{ propAssinadoColor }};">{{ propAssinadoLabel }}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-size:14px; color:#374151;">Inquilino</span>
+                  <span style="font-size:13px; font-weight:600; color:{{ inqAssinadoColor }};">{{ inqAssinadoLabel }}</span>
+                </div>
+              </div>
+              <sc-if value="{{ mostrarAssinar }}" hint-placeholder-val="{{ true }}">
+                <div style="margin-top:20px;">
+                  <sc-if value="{{ contratoError }}"><div style="color:#DC2626; font-size:13px; margin-bottom:10px;">{{ contratoError }}</div></sc-if>
+                  <button onClick="{{ assinarContrato }}" disabled="{{ contratoLoading }}" style="{{ primaryBtnStyleFull }}">{{ assinarLabel }}</button>
+                </div>
+              </sc-if>
+              <sc-if value="{{ contratoCompleto }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:20px; padding:12px; background:#F0FDF4; border-radius:8px; text-align:center; color:#16A34A; font-weight:600; font-size:13px;">Contrato totalmente assinado!</div>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#2563EB&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#2563EB&quot;,&quot;#7C3AED&quot;,&quot;#0EA5E9&quot;,&quot;#059669&quot;]}}">
+class Component extends DCLogic {
+  STATUS_MAP = {
+    VAGO: { label: 'Vago', color: '#16A34A' },
+    RESERVADO: { label: 'Reservado', color: '#D97706' },
+    ALUGADO: { label: 'Alugado', color: '#2563EB' },
+  };
+  state = {
+    screen: 'login',
+    loginStage: 'email',
+    loginLoading: false,
+    loginError: '',
+    email: '', nome: '', cpf: '', code: '',
+
+    imoveis: [
+      { id: '1', endereco: 'Rua das Acácias, 214', cidade: 'Belo Horizonte', matricula: '48213', visibilidade: 'PUBLICO', status: 'ALUGADO' },
+      { id: '2', endereco: 'Av. Getúlio Vargas, 980, apto 302', cidade: 'Belo Horizonte', matricula: '51902', visibilidade: 'PRIVADO', status: 'VAGO' },
+      { id: '3', endereco: 'Rua Sergipe, 1120', cidade: 'Belo Horizonte', matricula: '39044', visibilidade: 'PUBLICO', status: 'RESERVADO' },
+      { id: '4', endereco: 'Rua Pium-í, 45, casa 2', cidade: 'Nova Lima', matricula: '60177', visibilidade: 'PUBLICO', status: 'ALUGADO' },
+    ],
+
+    endereco: '', cidade: '', matricula: '', visibilidade: 'PUBLICO',
+    novoLoading: false, novoError: '',
+
+    contrato: {
+      tipoContrato: 'Residencial', valorAluguel: 2400, dataInicio: '01/08/2026', dataFim: '31/07/2027',
+      assinouProprietario: false, assinouInquilino: true,
+    },
+    contratoLoading: false, contratoError: '',
+
+    convite: {
+      tipoContrato: 'Residencial', valorAluguel: 2400, dataInicio: '01/08/2026', dataFim: '31/07/2027', garantiaAceita: 'Fiador',
+      checked: false, accepted: false, loading: false,
+    },
+  };
+
+  fmtMoney(v) {
+    return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const accentColor = this.props.accentColor ?? '#2563EB';
+    const screen = s.screen;
+
+    const navBtn = (key) => ({
+      border: 'none', borderRadius: 999, padding: '7px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+      background: screen === key ? accentColor : 'transparent',
+      color: screen === key ? '#fff' : 'rgba(255,255,255,0.65)',
+    });
+
+    const primaryBtnStyle = {
+      border: 'none', borderRadius: 10, padding: '13px 18px', fontSize: 14.5, fontWeight: 700, color: '#fff',
+      background: accentColor, cursor: s.loginLoading || s.novoLoading ? 'default' : 'pointer',
+      opacity: (s.loginLoading || s.novoLoading) ? 0.6 : 1,
+    };
+    const outlineBtnStyle = {
+      border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '12px 18px', fontSize: 14, fontWeight: 600, color: '#374151',
+      background: '#fff', cursor: 'pointer',
+    };
+
+    const imoveisView = s.imoveis.map(i => ({
+      ...i,
+      visibilidadeLabel: i.visibilidade === 'PUBLICO' ? 'Público' : 'Privado',
+      statusLabel: this.STATUS_MAP[i.status].label,
+      statusColor: this.STATUS_MAP[i.status].color,
+    }));
+    const statTotal = s.imoveis.length;
+    const statAlugados = s.imoveis.filter(i => i.status === 'ALUGADO').length;
+    const statVagos = s.imoveis.filter(i => i.status === 'VAGO').length;
+
+    const visStyle = (active) => ({
+      border: active ? `1.5px solid ${accentColor}` : '1.5px solid #E5E7EB',
+      background: active ? accentColor : '#fff',
+      color: active ? '#fff' : '#374151',
+      borderRadius: 8, padding: '9px 16px', fontSize: 13.5, fontWeight: 600, cursor: 'pointer',
+    });
+
+    const c = s.contrato;
+    const contratoCompleto = c.assinouProprietario && c.assinouInquilino;
+    const contratoStatus = contratoCompleto ? { label: 'Assinado', color: '#16A34A' } : { label: 'Pendente', color: '#D97706' };
+
+    const sideNavStyle = (key) => ({
+      display: 'flex', alignItems: 'center', gap: 10, border: 'none', textAlign: 'left', cursor: 'pointer',
+      padding: '10px 12px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+      background: screen === key ? 'rgba(255,255,255,0.1)' : 'transparent',
+      color: screen === key ? '#fff' : 'rgba(255,255,255,0.55)',
+    });
+    const sideDotStyle = (key) => ({
+      width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+      background: screen === key ? accentColor : 'rgba(255,255,255,0.3)',
+    });
+
+    const cv = s.convite;
+
+    return {
+      accentColor,
+      isLogin: screen === 'login', isConvite: screen === 'convite', isPortal: ['imoveis', 'novo', 'contrato'].includes(screen),
+      isImoveis: screen === 'imoveis', isNovo: screen === 'novo', isContrato: screen === 'contrato',
+      isStageEmail: s.loginStage === 'email', isStageCode: s.loginStage === 'code',
+
+      goLogin: () => this.setState({ screen: 'login' }),
+      goImoveis: () => this.setState({ screen: 'imoveis' }),
+      goNovo: () => this.setState({ screen: 'novo' }),
+      goContrato: () => this.setState({ screen: 'contrato' }),
+      goConvite: () => this.setState({ screen: 'convite' }),
+
+      navBtnStyleLogin: navBtn('login'), navBtnStyleImoveis: navBtn('imoveis'), navBtnStyleNovo: navBtn('novo'),
+      navBtnStyleContrato: navBtn('contrato'), navBtnStyleConvite: navBtn('convite'),
+      sideNavStyleImoveis: sideNavStyle('imoveis'), sideNavStyleContrato: sideNavStyle('contrato'),
+      sideDotStyleImoveis: sideDotStyle('imoveis'), sideDotStyleContrato: sideDotStyle('contrato'),
+
+      email: s.email, nome: s.nome, cpf: s.cpf, code: s.code, loginError: s.loginError, loginLoading: s.loginLoading,
+      setEmail: e => this.setState({ email: e.target.value }),
+      setNome: e => this.setState({ nome: e.target.value }),
+      setCpf: e => this.setState({ cpf: e.target.value }),
+      setCode: e => this.setState({ code: e.target.value }),
+      sendLabel: s.loginLoading ? 'Enviando...' : 'Enviar magic-link',
+      verifyLabel: s.loginLoading ? 'Verificando...' : 'Entrar',
+      sendMagicLink: () => {
+        if (!s.email) { this.setState({ loginError: 'Informe seu e-mail.' }); return; }
+        this.setState({ loginLoading: true, loginError: '' });
+        setTimeout(() => this.setState({ loginLoading: false, loginStage: 'code' }), 500);
+      },
+      verifyCode: () => {
+        if (!s.code) { this.setState({ loginError: 'Cole o código recebido por e-mail.' }); return; }
+        this.setState({ loginLoading: true, loginError: '' });
+        setTimeout(() => this.setState({ loginLoading: false, screen: 'imoveis' }), 500);
+      },
+      backToEmail: () => this.setState({ loginStage: 'email', loginError: '' }),
+      primaryBtnStyle, outlineBtnStyle,
+      outlineBtnStyleSmall: { ...outlineBtnStyle, padding: '9px 14px', fontSize: 13.5 },
+      primaryBtnStyleSmall: { ...primaryBtnStyle, padding: '10px 18px', fontSize: 13.5, opacity: 1, cursor: 'pointer', whiteSpace: 'nowrap' },
+      primaryBtnStyleFull: { ...primaryBtnStyle, width: '100%', opacity: s.contratoLoading ? 0.6 : 1 },
+
+      imoveisView, statTotal, statAlugados, statVagos,
+
+      endereco: s.endereco, cidade: s.cidade, matricula: s.matricula, novoError: s.novoError, novoLoading: s.novoLoading,
+      setEndereco: e => this.setState({ endereco: e.target.value }),
+      setCidade: e => this.setState({ cidade: e.target.value }),
+      setMatricula: e => this.setState({ matricula: e.target.value }),
+      setVisibilidadePublico: () => this.setState({ visibilidade: 'PUBLICO' }),
+      setVisibilidadePrivado: () => this.setState({ visibilidade: 'PRIVADO' }),
+      visPublicoStyle: visStyle(s.visibilidade === 'PUBLICO'),
+      visPrivadoStyle: visStyle(s.visibilidade === 'PRIVADO'),
+      salvarLabel: s.novoLoading ? 'Salvando...' : 'Salvar',
+      salvarImovel: () => {
+        if (!s.endereco || !s.cidade || !s.matricula) { this.setState({ novoError: 'Preencha todos os campos.' }); return; }
+        this.setState({ novoLoading: true, novoError: '' });
+        setTimeout(() => {
+          const novo = { id: String(Date.now()), endereco: s.endereco, cidade: s.cidade, matricula: s.matricula, visibilidade: s.visibilidade, status: 'VAGO' };
+          this.setState({ novoLoading: false, screen: 'imoveis', imoveis: [novo, ...s.imoveis], endereco: '', cidade: '', matricula: '' });
+        }, 500);
+      },
+
+      contratoTipo: c.tipoContrato, contratoValor: this.fmtMoney(c.valorAluguel), contratoPeriodo: `${c.dataInicio} → ${c.dataFim}`,
+      contratoStatusLabel: contratoStatus.label, contratoStatusColor: contratoStatus.color, contratoCompleto,
+      propAssinadoLabel: c.assinouProprietario ? 'Assinado' : 'Pendente', propAssinadoColor: c.assinouProprietario ? '#16A34A' : '#D97706',
+      inqAssinadoLabel: c.assinouInquilino ? 'Assinado' : 'Pendente', inqAssinadoColor: c.assinouInquilino ? '#16A34A' : '#D97706',
+      mostrarAssinar: !c.assinouProprietario, contratoError: s.contratoError, contratoLoading: s.contratoLoading,
+      assinarLabel: s.contratoLoading ? 'Assinando...' : 'Assinar como proprietário',
+      assinarContrato: () => {
+        this.setState({ contratoLoading: true, contratoError: '' });
+        setTimeout(() => this.setState({ contratoLoading: false, contrato: { ...s.contrato, assinouProprietario: true } }), 500);
+      },
+
+      conviteTipo: cv.tipoContrato, conviteValor: this.fmtMoney(cv.valorAluguel), convitePeriodo: `${cv.dataInicio} → ${cv.dataFim}`,
+      conviteGarantia: cv.garantiaAceita, conviteChecked: cv.checked, conviteNotAccepted: !cv.accepted, conviteAccepted: cv.accepted,
+      conviteSignDisabled: !cv.checked || cv.loading,
+      conviteBtnLabel: cv.loading ? 'Assinando...' : 'Assinar como inquilino',
+      conviteBtnStyle: { ...primaryBtnStyle, width: '100%', opacity: (!cv.checked || cv.loading) ? 0.5 : 1 },
+      toggleConviteChecked: () => this.setState({ convite: { ...cv, checked: !cv.checked } }),
+      assinarConvite: () => {
+        this.setState({ convite: { ...cv, loading: true } });
+        setTimeout(() => this.setState({ convite: { ...this.state.convite, loading: false, accepted: true } }), 600);
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>

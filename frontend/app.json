@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Gestão de Imóveis",
+    "slug": "frontend",
+    "version": "1.0.0",
+    "scheme": "imoveis",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "plugins": [
+      "expo-router"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "br.com.imoveis"
+    },
+    "android": {
+      "package": "br.com.imoveis",
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/icon.png"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png",
+      "output": "single"
+    }
+  }
+}
