@@ -6,6 +6,7 @@ on:
     paths:
       - 'backend/**'
       - '.github/workflows/azure-container-apps-backend.yml'
+  workflow_dispatch: {}
 
 jobs:
   build_and_deploy:
