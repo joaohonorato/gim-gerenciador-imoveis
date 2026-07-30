@@ -12,7 +12,15 @@ O build do frontend embute a URL pública do backend (build-time, não runtime �
 4. Rodar `./deploy/azure-setup.sh`. Ele cria resource group, Container Apps environment, o Container App (com um placeholder até o primeiro deploy real) já configurado com as env vars do Supabase, o Static Web App, e fecha o loop de CORS sozinho (sabe a URL do frontend assim que cria o recurso, não precisa esperar um deploy). No final, publica `AZURE_CREDENTIALS`, `AZURE_RESOURCE_GROUP`, `AZURE_CONTAINERAPPS_ENV`, `AZURE_STATIC_WEB_APPS_API_TOKEN` e `EXPO_PUBLIC_API_URL` como GitHub Secrets. É seguro rodar de novo (idempotente — pula o que já existe, reatualiza env vars e credenciais).
 5. Dar push na `main` (ou disparar os workflows manualmente) — os dois workflows em `.github/workflows/azure-*.yml` cuidam do build e deploy real de backend e frontend a partir daí.
 
-Script não testado por mim de ponta a ponta (não tenho `az` CLI neste ambiente) — revisado com cuidado e com checagens de idempotência, mas a primeira rodada real é sua; me avisa se algum passo específico falhar.
+Testado de ponta a ponta contra uma subscription real (não só revisado) — backend e frontend estão no ar. Três bugs reais apareceram só ao rodar de verdade, todos corrigidos no script: resource providers não registrados (`Microsoft.OperationalInsights`, `Microsoft.Web` — comuns em subscription nova, o script não registra sozinho, tem que rodar `az provider register -n <nome> --wait` manualmente se acontecer), região sem capacidade (`eastus` deu `AKSCapacityHeavyUsage` — daí o default ter virado `eastus2`), e mangling de path/CRLF do git-bash na geração do `AZURE_CREDENTIALS` (dois bugs distintos, ver histórico de commits de `deploy/azure-setup.sh`).
+
+## Domínio customizado (opcional)
+
+`deploy/azure-custom-domain.sh` — mesmo padrão do `azure-setup.sh`, idempotente, roda depois dele. Preenche `DOMAIN_NAME`/`FRONTEND_SUBDOMAIN`/`BACKEND_SUBDOMAIN` em `deploy/.env.azure` (domínio precisa já estar registrado em algum lugar — Squarespace, Registro.br, etc.; o script não registra domínio, só cria a zona DNS no Azure e delega). Primeira rodada cria a zona + registros (CNAME de `app`/`api` pros recursos existentes, TXT `asuid.api` de verificação do Container Apps) e imprime os 4 nameservers pra configurar no registrador. Depois de trocar lá, roda de novo — ele checa se já propagou (`nslookup -type=NS`) e, se sim, vincula o domínio customizado no Static Web App e no Container App (com certificado gerenciado grátis), atualiza `CORS_ALLOWED_ORIGIN_1`/`APP_CONVITES_FRONTEND_BASE_URL` e republica `EXPO_PUBLIC_API_URL`. Se ainda não propagou, só imprime os nameservers de novo e sai sem erro — seguro rodar quantas vezes precisar.
+
+Depois que vincular, dispara o workflow do frontend novamente (`gh workflow run azure-static-web-apps.yml`) — `EXPO_PUBLIC_API_URL` mudou e é build-time.
+
+A parte de vínculo de domínio (`az staticwebapp hostname set` / `az containerapp hostname bind`) não foi testada ainda enquanto este doc era escrito — depende de propagação de DNS que leva tempo real. Mesmo aviso do restante do script: revisado com cuidado, mas confirme o resultado.
 
 ## Variáveis de ambiente do Container App (backend)
 
