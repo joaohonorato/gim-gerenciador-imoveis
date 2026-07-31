@@ -47,7 +47,7 @@ public class ConviteJpaEntity {
     private LocalDate periodoFim;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "garantia_aceita", nullable = false)
+    @Column(name = "garantia_aceita")
     private GarantiaTipo garantiaAceita;
 
     @Enumerated(EnumType.STRING)
