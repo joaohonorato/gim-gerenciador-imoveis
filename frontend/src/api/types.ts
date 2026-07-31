@@ -25,7 +25,7 @@ export interface Convite {
   dataInicio: string;
   dataFim: string;
   garantiaAceita: string | null;
-  status?: 'PENDENTE' | 'EM_ANALISE' | 'CONSUMIDO' | 'EXPIRADO' | 'RECUSADO';
+  status?: 'PENDENTE' | 'EM_ANALISE' | 'CONSUMIDO' | 'EXPIRADO' | 'RECUSADO' | 'REVOGADO';
   imovelId?: string;
   unidadeId?: string;
   proprietarioId?: string;
@@ -77,6 +77,14 @@ export interface MeResponse {
   tipoConta: TipoConta;
 }
 
+export interface Inquilino {
+  id: string;
+  nome: string;
+  cpf: string | null;
+  email: string | null;
+  criadoEm: string;
+}
+
 export interface Chamado {
   id: string;
   imovelId: string;
@@ -110,7 +118,7 @@ export interface ConviteInquilino {
   imovelId: string;
   unidadeId: string;
   proprietarioId: string;
-  conviteStatus: 'PENDENTE' | 'EM_ANALISE' | 'CONSUMIDO' | 'EXPIRADO' | 'RECUSADO';
+  conviteStatus: 'PENDENTE' | 'EM_ANALISE' | 'CONSUMIDO' | 'EXPIRADO' | 'RECUSADO' | 'REVOGADO';
   candidaturaId: string;
   candidaturaStatus: 'PENDENTE' | 'APROVADA' | 'RECUSADA';
   tipoContrato: string;

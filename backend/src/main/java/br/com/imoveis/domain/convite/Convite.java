@@ -122,6 +122,13 @@ public class Convite {
         this.status = ConviteStatus.CONSUMIDO;
     }
 
+    public void revogar() {
+        if (status != ConviteStatus.PENDENTE) {
+            throw new IllegalStateException("convite não pode ser revogado no status atual: " + status);
+        }
+        this.status = ConviteStatus.REVOGADO;
+    }
+
     private static String gerarToken() {
         byte[] bytes = new byte[24];
         RNG.nextBytes(bytes);

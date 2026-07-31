@@ -121,6 +121,12 @@ export default function CandidaturasScreen() {
                 {exigeGarantia ? ` — ${item.garantiaEscolhida ? `enviada (${formatTipo(item.garantiaEscolhida)})` : 'aguardando envio pelo inquilino'}` : ''}
               </Text>
 
+              <Button
+                label="Ver inquilino"
+                variant="outline"
+                onPress={() => router.push(`/inquilinos/${item.inquilinoId}`)}
+              />
+
               {garantiaPendente ? (
                 <View className="rounded-xl px-4 py-3" style={{ borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#F5F6F8' }}>
                   <Text className="text-muted" style={{ fontSize: 13 }}>

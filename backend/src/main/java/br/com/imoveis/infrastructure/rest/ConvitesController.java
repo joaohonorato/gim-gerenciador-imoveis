@@ -11,6 +11,7 @@ import br.com.imoveis.application.usecase.AssinarContratoPorConvite;
 import br.com.imoveis.application.usecase.EnviarGarantiaDaCandidatura;
 import br.com.imoveis.application.usecase.EnviarLinkConvite;
 import br.com.imoveis.application.usecase.GerarConvite;
+import br.com.imoveis.application.usecase.RevogarConvite;
 import br.com.imoveis.domain.contrato.Contrato;
 import br.com.imoveis.domain.convite.Candidatura;
 import br.com.imoveis.domain.contrato.GarantiaTipo;
@@ -43,6 +44,7 @@ public class ConvitesController {
     private final AssinarContratoPorConvite assinarContratoPorConvite;
     private final EnviarGarantiaDaCandidatura enviarGarantia;
     private final EnviarLinkConvite enviarLinkConvite;
+    private final RevogarConvite revogarConvite;
     private final ConviteRepository conviteRepository;
     private final ContratoRepository contratoRepository;
     private final ImovelRepository imovelRepository;
@@ -52,6 +54,7 @@ public class ConvitesController {
                                AssinarContratoPorConvite assinarContratoPorConvite,
                                EnviarGarantiaDaCandidatura enviarGarantia,
                                EnviarLinkConvite enviarLinkConvite,
+                               RevogarConvite revogarConvite,
                                ConviteRepository conviteRepository,
                                ContratoRepository contratoRepository,
                                ImovelRepository imovelRepository) {
@@ -61,9 +64,17 @@ public class ConvitesController {
         this.assinarContratoPorConvite = assinarContratoPorConvite;
         this.enviarGarantia = enviarGarantia;
         this.enviarLinkConvite = enviarLinkConvite;
+        this.revogarConvite = revogarConvite;
         this.conviteRepository = conviteRepository;
         this.contratoRepository = contratoRepository;
         this.imovelRepository = imovelRepository;
+    }
+
+    @Post(value = "/convites/{token}/revogar", produces = MediaType.APPLICATION_JSON)
+    public ConviteResponse revogar(@PathVariable String token, HttpRequest<?> req) {
+        Principal p = CurrentPrincipal.require(req);
+        Convite convite = revogarConvite.execute(token, p.requireProprietarioId());
+        return ConviteResponse.from(convite);
     }
 
     @Get(value = "/imoveis/{imovelId}/convites", produces = MediaType.APPLICATION_JSON)

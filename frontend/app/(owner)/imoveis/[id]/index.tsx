@@ -13,6 +13,7 @@ const CONVITE_STATUS_COLOR: Record<string, string> = {
   CONSUMIDO: '#16A34A',
   EXPIRADO: '#6B7280',
   RECUSADO: '#DC2626',
+  REVOGADO: '#6B7280',
 };
 
 const CHAMADO_STATUS_COLOR: Record<string, string> = {
@@ -31,6 +32,7 @@ export default function ImovelDetalheScreen() {
   const [chamados, setChamados] = useState<Chamado[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [revogandoToken, setRevogandoToken] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     if (!id) return;
@@ -59,6 +61,19 @@ export default function ImovelDetalheScreen() {
   }, [id]);
 
   useFocusEffect(useCallback(() => { void carregar(); }, [carregar]));
+
+  async function revogarConvite(token: string) {
+    setRevogandoToken(token);
+    setError('');
+    try {
+      await apiFetch(`/convites/${token}/revogar`, { method: 'POST' });
+      setConvites((atual) => atual.map((c) => (c.token === token ? { ...c, status: 'REVOGADO' } : c)));
+    } catch (e: any) {
+      setError(e.message ?? 'Não foi possível revogar o convite');
+    } finally {
+      setRevogandoToken(null);
+    }
+  }
 
   if (loading) {
     return (
@@ -133,7 +148,18 @@ export default function ImovelDetalheScreen() {
                   Envio: {formatTipo(c.envio.status)} {c.envio.destino ? `(${c.envio.destino})` : ''}
                 </Text>
               ) : null}
-              <Button label="Ver convite" variant="outline" onPress={() => router.push(`/locacao/${c.token}`)} />
+              <View className="flex-row gap-2">
+                <Button label="Ver convite" variant="outline" onPress={() => router.push(`/locacao/${c.token}`)} />
+                {c.status === 'PENDENTE' ? (
+                  <Button
+                    label="Revogar"
+                    variant="outline"
+                    onPress={() => revogarConvite(c.token)}
+                    loading={revogandoToken === c.token}
+                    disabled={revogandoToken === c.token}
+                  />
+                ) : null}
+              </View>
             </View>
           ))
         )}
@@ -151,20 +177,28 @@ export default function ImovelDetalheScreen() {
             </View>
             <DetailRow label="Aluguel" value={formatCurrency(contrato.valorAluguel)} />
             <DetailRow label="Período" value={`${formatDate(contrato.dataInicio)} até ${formatDate(contrato.dataFim)}`} />
-            {contrato.statusAssinatura === 'PENDENTE' ? (
-              <Button label="Revisar e assinar" onPress={() => router.push(`/${contrato.id}/revisar`)} />
-            ) : null}
+            <View className="flex-row gap-2">
+              {contrato.statusAssinatura === 'PENDENTE' ? (
+                <Button label="Revisar e assinar" onPress={() => router.push(`/${contrato.id}/revisar`)} />
+              ) : null}
+              <Button label="Ver inquilino" variant="outline" onPress={() => router.push(`/inquilinos/${contrato.inquilinoId}`)} />
+            </View>
 
             {pagamentos.length > 0 ? (
               <View className="gap-2 mt-2">
                 <Text className="text-primary" style={{ fontSize: 14, fontWeight: '700' }}>Pagamentos ({pagamentos.length})</Text>
-                {pagamentos.map((p) => (
-                  <View key={p.id} className="flex-row items-center justify-between rounded-xl px-4 py-3" style={{ borderWidth: 1, borderColor: '#E5E7EB' }}>
-                    <Text className="text-muted" style={{ fontSize: 13 }}>Venc. {formatDate(p.vencimento)}</Text>
-                    <Text className="text-primary" style={{ fontSize: 13, fontWeight: '600' }}>{formatCurrency(p.valor)}</Text>
-                    <StatusBadge status={p.status} />
-                  </View>
-                ))}
+                {pagamentos.map((p) => {
+                  const agendado = p.status === 'PENDENTE' && isFuturo(p.vencimento);
+                  return (
+                    <View key={p.id} className="flex-row items-center justify-between rounded-xl px-4 py-3" style={{ borderWidth: 1, borderColor: '#E5E7EB' }}>
+                      <Text className="text-muted" style={{ fontSize: 13 }}>Venc. {formatDate(p.vencimento)}</Text>
+                      <Text className="text-primary" style={{ fontSize: 13, fontWeight: '600' }}>{formatCurrency(p.valor)}</Text>
+                      {agendado
+                        ? <Text style={{ color: '#6B7280', fontSize: 12, fontWeight: '700' }}>Agendado</Text>
+                        : <StatusBadge status={p.status} />}
+                    </View>
+                  );
+                })}
               </View>
             ) : null}
           </View>
@@ -224,4 +258,12 @@ function formatCurrency(value: number) {
 
 function formatDate(value: string) {
   return new Date(value.length <= 10 ? `${value}T00:00:00` : value).toLocaleDateString('pt-BR');
+}
+
+function isFuturo(vencimento: string) {
+  const venc = new Date(`${vencimento}T00:00:00`);
+  const hoje = new Date();
+  const vencMes = venc.getFullYear() * 12 + venc.getMonth();
+  const hojeMes = hoje.getFullYear() * 12 + hoje.getMonth();
+  return vencMes > hojeMes;
 }
