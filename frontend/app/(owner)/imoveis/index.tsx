@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, FlatList } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { apiFetch, ApiException } from '@/api/client';
-import { Imovel } from '@/api/types';
+import { Contrato, Imovel } from '@/api/types';
 import { session } from '@/api/session';
 import { Card } from '@/design/Card';
 import { Button } from '@/design/Button';
@@ -10,13 +10,18 @@ import { StatusBadge } from '@/design/StatusBadge';
 
 export default function ImoveisScreen() {
   const [imoveis, setImoveis] = useState<Imovel[]>([]);
+  const [contratosPendentes, setContratosPendentes] = useState<Contrato[]>([]);
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
 
   async function load() {
     try {
-      const data = await apiFetch<Imovel[]>('/imoveis');
-      setImoveis(data);
+      const [imoveisData, contratosData] = await Promise.all([
+        apiFetch<Imovel[]>('/imoveis'),
+        apiFetch<Contrato[]>('/contratos'),
+      ]);
+      setImoveis(imoveisData);
+      setContratosPendentes(contratosData.filter((c) => c.statusAssinatura === 'PENDENTE' && !c.assinouProprietario));
     } catch (e) {
       if (e instanceof ApiException && e.status === 401) {
         await session.clear();
@@ -41,7 +46,7 @@ export default function ImoveisScreen() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useFocusEffect(useCallback(() => { void load(); }, []));
 
   const stats = imoveis.reduce((acc, imovel) => {
     const status = getStatus(imovel);
@@ -75,6 +80,31 @@ export default function ImoveisScreen() {
         <StatCard label="Alugados" value={stats.alugados} color="#2563EB" />
         <StatCard label="Vagos" value={stats.vagos} color="#16A34A" />
       </View>
+
+      {contratosPendentes.length > 0 ? (
+        <View className="px-6 pb-4">
+          <Card className="gap-3">
+            <Text className="text-primary" style={{ fontSize: 16, fontWeight: '700' }}>
+              Contratos pendentes da sua assinatura ({contratosPendentes.length})
+            </Text>
+            {contratosPendentes.map((contrato) => (
+              <View
+                key={contrato.id}
+                className="flex-row items-center justify-between gap-3 rounded-xl px-4 py-3"
+                style={{ borderWidth: 1, borderColor: '#E5E7EB' }}
+              >
+                <View className="flex-1">
+                  <Text className="text-primary" style={{ fontWeight: '600', fontSize: 14 }}>
+                    {formatTipo(contrato.tipo ?? contrato.tipoContrato)}
+                  </Text>
+                  <Text className="text-muted" style={{ fontSize: 13 }}>{formatCurrency(contrato.valorAluguel)}</Text>
+                </View>
+                <Button label="Assinar" onPress={() => router.push(`/${contrato.id}/revisar`)} />
+              </View>
+            ))}
+          </Card>
+        </View>
+      ) : null}
 
       {loading
         ? <Text className="text-center text-muted mt-8">Carregando...</Text>
@@ -140,4 +170,14 @@ function getStatus(imovel: Imovel): 'VAGO' | 'RESERVADO' | 'ALUGADO' {
 
 function formatVisibilidade(visibilidade: Imovel['visibilidade']) {
   return visibilidade === 'PUBLICO' ? 'Público' : 'Privado';
+}
+
+function formatTipo(value?: string) {
+  if (!value) return 'Não informado';
+  const normalized = value.replace(/_/g, ' ').toLowerCase();
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function formatCurrency(value: number) {
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
