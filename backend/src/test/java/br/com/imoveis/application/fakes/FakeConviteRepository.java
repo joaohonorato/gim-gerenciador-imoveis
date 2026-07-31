@@ -19,6 +19,9 @@ public class FakeConviteRepository implements ConviteRepository {
         return convites.values().stream().filter(c -> c.token().equals(token)).findFirst();
     }
     @Override public Optional<Convite> findById(UUID id) { return Optional.ofNullable(convites.get(id)); }
+    @Override public List<Convite> findByImovelId(UUID imovelId) {
+        return convites.values().stream().filter(c -> c.imovelId().equals(imovelId)).toList();
+    }
     @Override public Candidatura saveCandidatura(Candidatura c) { candidaturas.put(c.id(), c); return c; }
     @Override public Optional<Candidatura> findCandidaturaById(UUID id) { return Optional.ofNullable(candidaturas.get(id)); }
     @Override public List<Candidatura> findCandidaturasByInquilinoId(UUID inquilinoId) {

@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface ConviteJpaRepository extends CrudRepository<ConviteJpaEntity, UUID> {
     Optional<ConviteJpaEntity> findByToken(String token);
     List<ConviteJpaEntity> findByProprietarioId(UUID proprietarioId);
+    List<ConviteJpaEntity> findByImovelId(UUID imovelId);
 }

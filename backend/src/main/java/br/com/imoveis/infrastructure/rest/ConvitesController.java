@@ -4,6 +4,7 @@ import br.com.imoveis.application.exception.NaoEncontradoException;
 import br.com.imoveis.application.ports.ConviteLinkSender;
 import br.com.imoveis.application.ports.ContratoRepository;
 import br.com.imoveis.application.ports.ConviteRepository;
+import br.com.imoveis.application.ports.ImovelRepository;
 import br.com.imoveis.application.usecase.AceitarConviteComContaExistente;
 import br.com.imoveis.application.usecase.AceitarConvite;
 import br.com.imoveis.application.usecase.AssinarContratoPorConvite;
@@ -15,6 +16,7 @@ import br.com.imoveis.domain.convite.Candidatura;
 import br.com.imoveis.domain.contrato.GarantiaTipo;
 import br.com.imoveis.domain.contrato.TipoContrato;
 import br.com.imoveis.domain.convite.Convite;
+import br.com.imoveis.domain.imovel.Imovel;
 import br.com.imoveis.domain.shared.Dinheiro;
 import br.com.imoveis.domain.shared.Periodo;
 import br.com.imoveis.infrastructure.auth.CurrentPrincipal;
@@ -43,6 +45,7 @@ public class ConvitesController {
     private final EnviarLinkConvite enviarLinkConvite;
     private final ConviteRepository conviteRepository;
     private final ContratoRepository contratoRepository;
+    private final ImovelRepository imovelRepository;
 
     public ConvitesController(GerarConvite gerarConvite, AceitarConvite aceitarConvite,
                                AceitarConviteComContaExistente aceitarConviteComContaExistente,
@@ -50,7 +53,8 @@ public class ConvitesController {
                                EnviarGarantiaDaCandidatura enviarGarantia,
                                EnviarLinkConvite enviarLinkConvite,
                                ConviteRepository conviteRepository,
-                               ContratoRepository contratoRepository) {
+                               ContratoRepository contratoRepository,
+                               ImovelRepository imovelRepository) {
         this.gerarConvite = gerarConvite;
         this.aceitarConvite = aceitarConvite;
         this.aceitarConviteComContaExistente = aceitarConviteComContaExistente;
@@ -59,6 +63,18 @@ public class ConvitesController {
         this.enviarLinkConvite = enviarLinkConvite;
         this.conviteRepository = conviteRepository;
         this.contratoRepository = contratoRepository;
+        this.imovelRepository = imovelRepository;
+    }
+
+    @Get(value = "/imoveis/{imovelId}/convites", produces = MediaType.APPLICATION_JSON)
+    public List<ConviteResponse> listarPorImovel(@PathVariable UUID imovelId, HttpRequest<?> req) {
+        Principal p = CurrentPrincipal.require(req);
+        Imovel imovel = imovelRepository.findById(imovelId)
+            .filter(i -> i.proprietarioId().equals(p.proprietarioId()))
+            .orElseThrow(() -> new NaoEncontradoException("imóvel"));
+        return conviteRepository.findByImovelId(imovel.id()).stream()
+            .map(ConviteResponse::from)
+            .toList();
     }
 
     @Status(HttpStatus.CREATED)

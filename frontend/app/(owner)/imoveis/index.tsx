@@ -135,11 +135,17 @@ export default function ImoveisScreen() {
                   </View>
                 </View>
 
-                <Button
-                  label="Enviar convite"
-                  variant="outline"
-                  onPress={() => router.push(`/imoveis/${item.id}/convite`)}
-                />
+                <View className="flex-row gap-2">
+                  <Button
+                    label="Ver detalhes"
+                    onPress={() => router.push(`/imoveis/${item.id}`)}
+                  />
+                  <Button
+                    label="Enviar convite"
+                    variant="outline"
+                    onPress={() => router.push(`/imoveis/${item.id}/convite`)}
+                  />
+                </View>
               </Card>
             )}
           />

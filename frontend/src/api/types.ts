@@ -77,6 +77,17 @@ export interface MeResponse {
   tipoConta: TipoConta;
 }
 
+export interface Chamado {
+  id: string;
+  imovelId: string;
+  abertoPor: string;
+  categoria: string;
+  descricao: string;
+  status: 'ABERTO' | 'EM_ANDAMENTO' | 'RESOLVIDO';
+  abertoEm: string;
+  resolvidoEm: string | null;
+}
+
 export interface CandidaturaPendente {
   id: string;
   imovelId: string;

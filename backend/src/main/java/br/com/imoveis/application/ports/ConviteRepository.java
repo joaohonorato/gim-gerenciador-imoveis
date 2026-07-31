@@ -11,6 +11,7 @@ public interface ConviteRepository {
     Convite save(Convite convite);
     Optional<Convite> findByToken(String token);
     Optional<Convite> findById(UUID id);
+    List<Convite> findByImovelId(UUID imovelId);
 
     Candidatura saveCandidatura(Candidatura candidatura);
     Optional<Candidatura> findCandidaturaById(UUID id);
