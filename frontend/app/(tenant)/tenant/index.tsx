@@ -164,7 +164,10 @@ export default function TenantHomeScreen() {
                 <Text className="text-muted">Período: {formatDate(item.dataInicio)} até {formatDate(item.dataFim)}</Text>
                 <Text className="text-muted">Aluguel: {formatCurrency(item.valorAluguel)}</Text>
                 {item.candidaturaStatus === 'PENDENTE' ? (
-                  <Button label="Abrir e enviar garantia" onPress={() => router.push(`/locacao/${item.token}`)} />
+                  <Button
+                    label={precisaEnviarGarantia(item) ? 'Abrir e enviar garantia' : 'Acompanhar convite'}
+                    onPress={() => router.push(`/locacao/${item.token}`)}
+                  />
                 ) : null}
                 {item.contratoId && item.statusAssinaturaContrato === 'PENDENTE' ? (
                   <Button label="Revisar e assinar contrato" onPress={() => router.push(`/${item.contratoId}/revisar`)} />
@@ -228,6 +231,10 @@ export default function TenantHomeScreen() {
       ) : null}
     </ScrollView>
   );
+}
+
+function precisaEnviarGarantia(item: ConviteInquilino) {
+  return item.garantiaAceita != null && item.garantiaAceita !== 'NENHUMA' && item.garantiaEscolhida == null;
 }
 
 function formatTipo(value?: string) {

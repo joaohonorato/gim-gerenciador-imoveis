@@ -86,6 +86,17 @@ public class ConviteRepositoryAdapter implements ConviteRepository {
             .toList();
     }
 
+    @Override
+    public java.util.List<Candidatura> findCandidaturasByProprietarioId(UUID proprietarioId) {
+        java.util.List<UUID> conviteIds = conviteJpa.findByProprietarioId(proprietarioId).stream()
+            .map(ConviteJpaEntity::getId)
+            .toList();
+        if (conviteIds.isEmpty()) return java.util.List.of();
+        return candidaturaJpa.findByConviteIdIn(conviteIds).stream()
+            .map(this::toDomainCandidatura)
+            .toList();
+    }
+
     private Convite toDomain(ConviteJpaEntity e) {
         Convite.CondicoesConvite condicoes = new Convite.CondicoesConvite(
             e.getTipoContrato(),

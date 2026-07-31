@@ -9,4 +9,5 @@ import java.util.UUID;
 @Repository
 public interface CandidaturaJpaRepository extends CrudRepository<CandidaturaJpaEntity, UUID> {
 	List<CandidaturaJpaEntity> findByInquilinoId(UUID inquilinoId);
+	List<CandidaturaJpaEntity> findByConviteIdIn(List<UUID> conviteIds);
 }

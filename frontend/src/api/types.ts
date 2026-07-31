@@ -77,6 +77,22 @@ export interface MeResponse {
   tipoConta: TipoConta;
 }
 
+export interface CandidaturaPendente {
+  id: string;
+  imovelId: string;
+  unidadeId: string;
+  inquilinoId: string;
+  inquilinoNome: string | null;
+  inquilinoEmail: string | null;
+  tipoContrato: string;
+  valorAluguel: number;
+  dataInicio: string;
+  dataFim: string;
+  garantiaAceita: string | null;
+  garantiaEscolhida: string | null;
+  criadaEm: string;
+}
+
 export interface ConviteInquilino {
   conviteId: string;
   token: string;

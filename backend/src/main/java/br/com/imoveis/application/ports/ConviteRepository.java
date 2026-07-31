@@ -15,4 +15,5 @@ public interface ConviteRepository {
     Candidatura saveCandidatura(Candidatura candidatura);
     Optional<Candidatura> findCandidaturaById(UUID id);
     List<Candidatura> findCandidaturasByInquilinoId(UUID inquilinoId);
+    List<Candidatura> findCandidaturasByProprietarioId(UUID proprietarioId);
 }

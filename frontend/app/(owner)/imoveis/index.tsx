@@ -64,6 +64,7 @@ export default function ImoveisScreen() {
           <View className="gap-2" style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <Button testID="btn-novo-imovel" label="+ Novo imóvel" onPress={() => router.push('/imoveis/novo')} />
             <Button testID="btn-novo-convite" label="+ Novo convite" variant="outline" onPress={() => router.push('/convites/novo')} />
+            <Button testID="btn-candidaturas" label="Candidaturas" variant="outline" onPress={() => router.push('/candidaturas')} />
             <Button testID="btn-logout" label="Sair" onPress={logout} variant="outline" loading={loggingOut} disabled={loggingOut} />
           </View>
         </View>

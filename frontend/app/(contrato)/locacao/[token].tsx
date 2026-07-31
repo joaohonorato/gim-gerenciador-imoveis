@@ -83,6 +83,10 @@ export default function ConviteLocacaoScreen() {
     return false;
   }, [conviteVinculado]);
 
+  const candidaturaAguardandoAprovacao = useMemo(() => {
+    return !!conviteVinculado && conviteVinculado.candidaturaStatus === 'PENDENTE' && !precisaGarantia;
+  }, [conviteVinculado, precisaGarantia]);
+
   const contratoPendenteAssinatura = useMemo(() => {
     if (!conviteVinculado) return null;
     if (conviteVinculado.statusAssinaturaContrato !== 'PENDENTE') return null;
@@ -305,7 +309,7 @@ export default function ConviteLocacaoScreen() {
           </View>
         ) : null}
 
-        {conviteVinculado && conviteVinculado.candidaturaStatus === 'PENDENTE' && conviteVinculado.garantiaEscolhida != null ? (
+        {candidaturaAguardandoAprovacao ? (
           <View className="rounded-xl px-4 py-4 mb-4" style={{ borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#F5F6F8' }}>
             <Text className="text-primary" style={{ fontWeight: '700' }}>Candidatura enviada</Text>
             <Text className="text-muted">Agora aguarde a aprovação do proprietário.</Text>
@@ -321,7 +325,7 @@ export default function ConviteLocacaoScreen() {
           </View>
         ) : null}
 
-        {!podeAceitarComConta && !precisaCadastro && !precisaGarantia && !contratoPendenteAssinatura && !error ? (
+        {!podeAceitarComConta && !precisaCadastro && !precisaGarantia && !candidaturaAguardandoAprovacao && !contratoPendenteAssinatura && !error ? (
           <View className="rounded-xl px-4 py-4" style={{ borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#F5F6F8' }}>
             <Text className="text-primary" style={{ fontWeight: '700' }}>Sem ações pendentes neste convite.</Text>
             <Text className="text-muted">Se você já possui conta, acesse seu painel para acompanhar o andamento.</Text>

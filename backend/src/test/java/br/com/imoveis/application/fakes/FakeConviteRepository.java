@@ -24,4 +24,9 @@ public class FakeConviteRepository implements ConviteRepository {
     @Override public List<Candidatura> findCandidaturasByInquilinoId(UUID inquilinoId) {
         return candidaturas.values().stream().filter(c -> c.inquilinoId().equals(inquilinoId)).toList();
     }
+    @Override public List<Candidatura> findCandidaturasByProprietarioId(UUID proprietarioId) {
+        return candidaturas.values().stream()
+            .filter(c -> convites.containsKey(c.conviteId()) && convites.get(c.conviteId()).proprietarioId().equals(proprietarioId))
+            .toList();
+    }
 }

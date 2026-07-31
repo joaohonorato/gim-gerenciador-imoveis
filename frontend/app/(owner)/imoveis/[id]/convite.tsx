@@ -37,9 +37,11 @@ export default function NovoConviteImovelScreen() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [feedback, setFeedback] = useState<{ tone: 'success' | 'warning' | 'danger'; message: string } | null>(null);
   const [whatsappShareUrl, setWhatsappShareUrl] = useState('');
   const [ultimoTokenConvite, setUltimoTokenConvite] = useState('');
+
+  const feedbackColor = { success: '#16A34A', warning: '#D97706', danger: '#DC2626' } as const;
 
   const dadosSelecionados = dadosContrato[tipoContrato];
 
@@ -61,6 +63,25 @@ export default function NovoConviteImovelScreen() {
     }));
   }
 
+  function envioFeedback(envio: ConviteCriado['envio'], reenvio: boolean): { tone: 'success' | 'warning' | 'danger'; message: string } {
+    const destino = envio?.destino || (canalEnvio === 'EMAIL' ? emailInquilino.trim() : telefoneInquilino.trim());
+    switch (envio?.status) {
+      case 'ENVIADO':
+        return { tone: 'success', message: `Convite ${reenvio ? 'reenviado' : 'enviado'} por e-mail para ${destino}.` };
+      case 'PRONTO_PARA_ENVIO':
+        return { tone: 'success', message: `Convite pronto — toque em "Abrir WhatsApp" para concluir o envio para ${destino}.` };
+      case 'PULADO':
+        return { tone: 'warning', message: `Este e-mail já tem uma conta de inquilino vinculada automaticamente — não é necessário enviar um novo convite.` };
+      case 'FALHA':
+        return {
+          tone: 'danger',
+          message: `Não foi possível enviar o e-mail para ${destino}. Tente novamente em instantes ou envie o link por WhatsApp.`,
+        };
+      default:
+        return { tone: 'success', message: reenvio ? 'Convite atualizado com sucesso.' : 'Convite criado com sucesso.' };
+    }
+  }
+
   async function enviarConvite() {
     if (!id || !canSubmit) {
       setError('Revise os campos do convite antes de enviar.');
@@ -69,7 +90,7 @@ export default function NovoConviteImovelScreen() {
 
     setLoading(true);
     setError('');
-    setSuccess('');
+    setFeedback(null);
     setWhatsappShareUrl('');
 
     try {
@@ -87,23 +108,11 @@ export default function NovoConviteImovelScreen() {
         }),
       });
 
-      const status = convite.envio?.status;
       setUltimoTokenConvite(convite.token);
       if (canalEnvio === 'WHATSAPP' && convite.envio?.whatsappShareUrl) {
         setWhatsappShareUrl(convite.envio.whatsappShareUrl);
       }
-
-      if (status === 'ENVIADO') {
-        setSuccess(`Convite ${convite.token} enviado com sucesso por e-mail. Tentativas: ${convite.envio?.tentativas ?? 1}.`);
-      } else if (status === 'PRONTO_PARA_ENVIO') {
-        setSuccess(`Convite ${convite.token} pronto para envio no WhatsApp. Tentativas: ${convite.envio?.tentativas ?? 1}.`);
-      } else if (status === 'PULADO') {
-        setSuccess(`Convite ${convite.token} criado. O inquilino já existente recebeu na inbox automaticamente.`);
-      } else if (status === 'FALHA') {
-        setSuccess(`Convite ${convite.token} criado, mas o envio falhou. Você pode reenviar com outro canal.`);
-      } else {
-        setSuccess(`Convite ${convite.token} criado com sucesso.`);
-      }
+      setFeedback(envioFeedback(convite.envio, false));
     } catch (e: any) {
       setError(e.message ?? 'Não foi possível enviar o convite');
     } finally {
@@ -119,7 +128,7 @@ export default function NovoConviteImovelScreen() {
 
     setLoading(true);
     setError('');
-    setSuccess('');
+    setFeedback(null);
     setWhatsappShareUrl('');
 
     try {
@@ -132,22 +141,10 @@ export default function NovoConviteImovelScreen() {
         }),
       });
 
-      const status = convite.envio?.status;
       if (canalEnvio === 'WHATSAPP' && convite.envio?.whatsappShareUrl) {
         setWhatsappShareUrl(convite.envio.whatsappShareUrl);
       }
-
-      if (status === 'ENVIADO') {
-        setSuccess(`Convite ${convite.token} reenviado por e-mail. Tentativas: ${convite.envio?.tentativas ?? '-'}.`);
-      } else if (status === 'PRONTO_PARA_ENVIO') {
-        setSuccess(`Convite ${convite.token} pronto para novo envio no WhatsApp. Tentativas: ${convite.envio?.tentativas ?? '-'}.`);
-      } else if (status === 'PULADO') {
-        setSuccess(`Reenvio registrado para o convite ${convite.token}, mas não foi enviado automaticamente.`);
-      } else if (status === 'FALHA') {
-        setSuccess(`Reenvio registrado para o convite ${convite.token}, mas houve falha no canal atual.`);
-      } else {
-        setSuccess(`Reenvio registrado para o convite ${convite.token}.`);
-      }
+      setFeedback(envioFeedback(convite.envio, true));
     } catch (e: any) {
       setError(e.message ?? 'Não foi possível reenviar o convite');
     } finally {
@@ -233,7 +230,7 @@ export default function NovoConviteImovelScreen() {
         </View>
 
         {error ? <Text style={{ color: '#DC2626', marginBottom: 10 }}>{error}</Text> : null}
-        {success ? <Text style={{ color: '#16A34A', marginBottom: 10 }}>{success}</Text> : null}
+        {feedback ? <Text style={{ color: feedbackColor[feedback.tone], marginBottom: 10, fontWeight: '600' }}>{feedback.message}</Text> : null}
 
         <View className="gap-2">
           <Button label="Criar e enviar convite" onPress={enviarConvite} loading={loading} disabled={!canSubmit || loading} />

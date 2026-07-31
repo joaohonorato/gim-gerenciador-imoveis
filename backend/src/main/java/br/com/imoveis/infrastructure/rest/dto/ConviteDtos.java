@@ -98,6 +98,22 @@ public final class ConviteDtos {
     public record GarantiaRequest(GarantiaTipo tipo, String dadosEspecificos) {}
 
     @Serdeable
+    public record CandidaturaPendenteResponse(
+        UUID id,
+        UUID imovelId,
+        UUID unidadeId,
+        UUID inquilinoId,
+        String inquilinoNome,
+        String inquilinoEmail,
+        TipoContrato tipoContrato,
+        BigDecimal valorAluguel,
+        LocalDate dataInicio,
+        LocalDate dataFim,
+        GarantiaTipo garantiaAceita,
+        GarantiaTipo garantiaEscolhida,
+        Instant criadaEm) {}
+
+    @Serdeable
     public record ConviteInquilinoResponse(
         UUID conviteId,
         String token,
