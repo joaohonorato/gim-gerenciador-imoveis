@@ -129,6 +129,20 @@ public class Convite {
         this.status = ConviteStatus.REVOGADO;
     }
 
+    public void marcarRecusado() {
+        if (status != ConviteStatus.EM_ANALISE) {
+            throw new IllegalStateException("convite não está em análise: " + status);
+        }
+        this.status = ConviteStatus.RECUSADO;
+    }
+
+    public boolean ativo(Instant agora) {
+        if (status == ConviteStatus.REVOGADO || status == ConviteStatus.RECUSADO) {
+            return false;
+        }
+        return status != ConviteStatus.PENDENTE || !expirado(agora);
+    }
+
     private static String gerarToken() {
         byte[] bytes = new byte[24];
         RNG.nextBytes(bytes);

@@ -67,7 +67,7 @@ export default function ImovelDetalheScreen() {
     setError('');
     try {
       await apiFetch(`/convites/${token}/revogar`, { method: 'POST' });
-      setConvites((atual) => atual.map((c) => (c.token === token ? { ...c, status: 'REVOGADO' } : c)));
+      setConvites((atual) => atual.filter((c) => c.token !== token));
     } catch (e: any) {
       setError(e.message ?? 'Não foi possível revogar o convite');
     } finally {

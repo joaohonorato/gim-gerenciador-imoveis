@@ -29,5 +29,8 @@ public class RecusarCandidato {
         }
         candidatura.recusar();
         conviteRepository.saveCandidatura(candidatura);
+
+        convite.marcarRecusado();
+        conviteRepository.save(convite);
     }
 }

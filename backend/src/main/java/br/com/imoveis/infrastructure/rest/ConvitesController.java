@@ -1,6 +1,7 @@
 package br.com.imoveis.infrastructure.rest;
 
 import br.com.imoveis.application.exception.NaoEncontradoException;
+import br.com.imoveis.application.ports.Clock;
 import br.com.imoveis.application.ports.ConviteLinkSender;
 import br.com.imoveis.application.ports.ContratoRepository;
 import br.com.imoveis.application.ports.ConviteRepository;
@@ -48,6 +49,7 @@ public class ConvitesController {
     private final ConviteRepository conviteRepository;
     private final ContratoRepository contratoRepository;
     private final ImovelRepository imovelRepository;
+    private final Clock clock;
 
     public ConvitesController(GerarConvite gerarConvite, AceitarConvite aceitarConvite,
                                AceitarConviteComContaExistente aceitarConviteComContaExistente,
@@ -57,7 +59,8 @@ public class ConvitesController {
                                RevogarConvite revogarConvite,
                                ConviteRepository conviteRepository,
                                ContratoRepository contratoRepository,
-                               ImovelRepository imovelRepository) {
+                               ImovelRepository imovelRepository,
+                               Clock clock) {
         this.gerarConvite = gerarConvite;
         this.aceitarConvite = aceitarConvite;
         this.aceitarConviteComContaExistente = aceitarConviteComContaExistente;
@@ -68,6 +71,7 @@ public class ConvitesController {
         this.conviteRepository = conviteRepository;
         this.contratoRepository = contratoRepository;
         this.imovelRepository = imovelRepository;
+        this.clock = clock;
     }
 
     @Post(value = "/convites/{token}/revogar", produces = MediaType.APPLICATION_JSON)
@@ -84,6 +88,7 @@ public class ConvitesController {
             .filter(i -> i.proprietarioId().equals(p.proprietarioId()))
             .orElseThrow(() -> new NaoEncontradoException("imóvel"));
         return conviteRepository.findByImovelId(imovel.id()).stream()
+            .filter(c -> c.ativo(clock.now()))
             .map(ConviteResponse::from)
             .toList();
     }
