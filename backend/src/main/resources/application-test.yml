@@ -7,6 +7,20 @@ datasources:
     schema-generate: CREATE_DROP
     dialect: H2
 
+# H2 is ephemeral per test run (fresh schema every time via schema-generate above) —
+# Flyway's Postgres-flavored migrations don't apply here and aren't needed.
+flyway:
+  datasources:
+    default:
+      enabled: false
+
+jpa:
+  default:
+    properties:
+      hibernate:
+        hbm2ddl:
+          auto: update
+
 app:
   test-support:
     enabled: true

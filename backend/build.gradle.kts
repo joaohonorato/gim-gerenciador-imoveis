@@ -24,6 +24,8 @@ dependencies {
     implementation("io.micronaut.validation:micronaut-validation")
     implementation("io.micronaut.data:micronaut-data-hibernate-jpa")
     implementation("io.micronaut.sql:micronaut-jdbc-hikari")
+    implementation("io.micronaut.flyway:micronaut-flyway")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql")
     implementation("jakarta.annotation:jakarta.annotation-api")
     implementation("io.swagger.core.v3:swagger-annotations")
 

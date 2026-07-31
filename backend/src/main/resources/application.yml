@@ -41,6 +41,16 @@ datasources:
     schema-generate: ${DB_SCHEMA_GENERATE:NONE}
     dialect: ${DB_DIALECT:POSTGRES}
 
+flyway:
+  datasources:
+    default:
+      enabled: ${FLYWAY_ENABLED:true}
+      # Existing (non-empty) databases adopting Flyway for the first time are marked as
+      # already being at V1 instead of re-running it; brand-new empty databases (fresh
+      # local resets, future dev/hml) run V1 for real and end up with the same schema.
+      baseline-on-migrate: true
+      baseline-version: 1
+
 jpa:
   default:
     entity-scan:
@@ -49,7 +59,9 @@ jpa:
     properties:
       hibernate:
         hbm2ddl:
-          auto: ${HIBERNATE_DDL_AUTO:update}
+          # Schema is owned by Flyway migrations (db/migration) now — validate only
+          # checks entities against the real schema at boot, it never alters it.
+          auto: ${HIBERNATE_DDL_AUTO:validate}
         show_sql: ${HIBERNATE_SHOW_SQL:false}
         format_sql: ${HIBERNATE_FORMAT_SQL:false}
 

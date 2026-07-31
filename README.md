@@ -105,6 +105,7 @@ Variáveis de ambiente suportadas no backend:
 - `HIBERNATE_DDL_AUTO`
 - `HIBERNATE_SHOW_SQL`
 - `HIBERNATE_FORMAT_SQL`
+- `FLYWAY_ENABLED`
 - `APP_AUTH_SESSION_TOKEN_TTL_HOURS`
 - `APP_AUTH_MAGIC_LINK_TTL_DAYS`
 - `APP_CONVITES_FRONTEND_BASE_URL`
@@ -122,6 +123,8 @@ Exemplo rapido de uso:
 ```
 
 Observacao: os testes continuam usando `application-test.yml` com **H2 in-memory**, sem dependencia do Postgres.
+
+O schema do Postgres (local, prod, e futuros dev/hml) e provisionado por Flyway (`backend/src/main/resources/db/migration/`), nao por `hibernate.hbm2ddl.auto` (que fica em `validate`, so checagem). Banco vazio → Flyway roda as migrations de verdade; banco ja existente sem `flyway_schema_history` → e baselineado na V1 automaticamente. Qualquer mudanca de schema precisa de um `Vn__descricao.sql` novo, nao so mudar a entidade JPA.
 
 ## Frontend
 
