@@ -9,4 +9,6 @@ import java.util.UUID;
 @Repository
 public interface ChamadoJpaRepository extends CrudRepository<ChamadoJpaEntity, UUID> {
     List<ChamadoJpaEntity> findByImovelId(UUID imovelId);
+    List<ChamadoJpaEntity> findByImovelIdIn(List<UUID> imovelIds);
+    List<ChamadoJpaEntity> findByAbertoPor(UUID abertoPor);
 }

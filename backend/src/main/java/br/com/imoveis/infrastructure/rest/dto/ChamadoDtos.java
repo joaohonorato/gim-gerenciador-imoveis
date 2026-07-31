@@ -12,7 +12,7 @@ public final class ChamadoDtos {
     private ChamadoDtos() {}
 
     @Serdeable
-    public record NovoChamadoRequest(UUID inquilinoId, CategoriaChamado categoria, String descricao) {}
+    public record NovoChamadoRequest(CategoriaChamado categoria, String descricao) {}
 
     @Serdeable
     public record AtualizarChamadoRequest(ChamadoStatus status) {}

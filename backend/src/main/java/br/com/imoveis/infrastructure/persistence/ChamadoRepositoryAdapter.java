@@ -43,6 +43,13 @@ public class ChamadoRepositoryAdapter implements ChamadoRepository {
     @Override public List<Chamado> findByImovel(UUID imovelId) {
         return jpa.findByImovelId(imovelId).stream().map(this::toDomain).toList();
     }
+    @Override public List<Chamado> findByImovelIds(List<UUID> imovelIds) {
+        if (imovelIds.isEmpty()) return List.of();
+        return jpa.findByImovelIdIn(imovelIds).stream().map(this::toDomain).toList();
+    }
+    @Override public List<Chamado> findByInquilino(UUID inquilinoId) {
+        return jpa.findByAbertoPor(inquilinoId).stream().map(this::toDomain).toList();
+    }
 
     private Chamado toDomain(ChamadoJpaEntity e) {
         return Chamado.reconstituir(e.getId(), e.getImovelId(), e.getAbertoPor(),

@@ -10,4 +10,6 @@ public interface ChamadoRepository {
     Chamado save(Chamado chamado);
     Optional<Chamado> findById(UUID id);
     List<Chamado> findByImovel(UUID imovelId);
+    List<Chamado> findByImovelIds(List<UUID> imovelIds);
+    List<Chamado> findByInquilino(UUID inquilinoId);
 }
