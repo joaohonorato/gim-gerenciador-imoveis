@@ -5,6 +5,7 @@ import { apiFetch } from '@/api/client';
 import { Button } from '@/design/Button';
 import { Card } from '@/design/Card';
 import { StatusBadge } from '@/design/StatusBadge';
+import { HubHeader } from '@/design/HubHeader';
 import { CandidaturaPendente } from '@/api/types';
 
 export default function CandidaturasScreen() {
@@ -75,19 +76,12 @@ export default function CandidaturasScreen() {
   }
 
   return (
-    <ScrollView
-      className="flex-1 bg-surface"
-      contentContainerClassName="p-6 gap-4"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void carregar(true)} />}
-    >
-      <View className="flex-row items-start justify-between gap-3">
-        <View className="flex-1">
-          <Text className="text-primary mb-1" style={{ fontSize: 24, fontWeight: '800' }}>Candidaturas</Text>
-          <Text className="text-muted" style={{ fontSize: 14 }}>Analise e responda às candidaturas dos seus convites.</Text>
-        </View>
-        <Button label="Meus imóveis" variant="outline" onPress={() => router.push('/imoveis')} />
-      </View>
-
+    <View className="flex-1 bg-surface">
+      <HubHeader title="Candidaturas" subtitle="Analise e responda às candidaturas dos seus convites." />
+      <ScrollView
+        contentContainerClassName="p-6 gap-4"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void carregar(true)} />}
+      >
       {error ? (
         <Card><Text style={{ color: '#DC2626', fontSize: 13 }}>{error}</Text></Card>
       ) : null}
@@ -143,7 +137,8 @@ export default function CandidaturasScreen() {
           );
         })
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 

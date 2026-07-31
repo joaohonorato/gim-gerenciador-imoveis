@@ -57,6 +57,7 @@ export interface Contrato {
 
 export interface Pagamento {
   id: string;
+  contratoId: string;
   vencimento: string;
   valor: number;
   status: 'PENDENTE' | 'PAGO' | 'ATRASADO';

@@ -116,6 +116,15 @@ public class ContratoRepositoryAdapter implements ContratoRepository {
         return pagamentoJpa.findByContratoId(contratoId).stream().map(this::toDomainPagamento).toList();
     }
 
+    @Override
+    public List<Pagamento> findPagamentosByProprietarioId(UUID proprietarioId) {
+        List<UUID> contratoIds = contratoJpa.findByProprietarioId(proprietarioId).stream()
+            .map(ContratoJpaEntity::getId)
+            .toList();
+        if (contratoIds.isEmpty()) return List.of();
+        return pagamentoJpa.findByContratoIdIn(contratoIds).stream().map(this::toDomainPagamento).toList();
+    }
+
     private Contrato toDomain(ContratoJpaEntity e) {
         EnumSet<ParteContrato> assinaturas = EnumSet.noneOf(ParteContrato.class);
         if (e.isAssinouProprietario()) assinaturas.add(ParteContrato.PROPRIETARIO);

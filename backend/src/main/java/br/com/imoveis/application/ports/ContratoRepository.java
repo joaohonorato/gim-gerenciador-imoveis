@@ -21,4 +21,5 @@ public interface ContratoRepository {
     Pagamento savePagamento(Pagamento pagamento);
     Optional<Pagamento> findPagamentoById(UUID id);
     List<Pagamento> findPagamentosByContrato(UUID contratoId);
+    List<Pagamento> findPagamentosByProprietarioId(UUID proprietarioId);
 }

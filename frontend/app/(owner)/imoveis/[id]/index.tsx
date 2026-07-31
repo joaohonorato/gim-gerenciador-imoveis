@@ -6,6 +6,7 @@ import { Button } from '@/design/Button';
 import { Card } from '@/design/Card';
 import { StatusBadge } from '@/design/StatusBadge';
 import { Chamado, Contrato, Convite, Imovel, Pagamento } from '@/api/types';
+import { isFuturo } from '@/utils/pagamentos';
 
 const CONVITE_STATUS_COLOR: Record<string, string> = {
   PENDENTE: '#D97706',
@@ -260,10 +261,3 @@ function formatDate(value: string) {
   return new Date(value.length <= 10 ? `${value}T00:00:00` : value).toLocaleDateString('pt-BR');
 }
 
-function isFuturo(vencimento: string) {
-  const venc = new Date(`${vencimento}T00:00:00`);
-  const hoje = new Date();
-  const vencMes = venc.getFullYear() * 12 + venc.getMonth();
-  const hojeMes = hoje.getFullYear() * 12 + hoje.getMonth();
-  return vencMes > hojeMes;
-}

@@ -62,6 +62,9 @@ public class ConviteRepositoryAdapter implements ConviteRepository {
     @Override public java.util.List<Convite> findByImovelId(UUID imovelId) {
         return conviteJpa.findByImovelId(imovelId).stream().map(this::toDomain).toList();
     }
+    @Override public java.util.List<Convite> findByProprietarioId(UUID proprietarioId) {
+        return conviteJpa.findByProprietarioId(proprietarioId).stream().map(this::toDomain).toList();
+    }
 
     @Override
     public Candidatura saveCandidatura(Candidatura c) {

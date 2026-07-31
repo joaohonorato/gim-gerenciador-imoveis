@@ -81,6 +81,14 @@ public class ConvitesController {
         return ConviteResponse.from(convite);
     }
 
+    @Get(value = "/convites", produces = MediaType.APPLICATION_JSON)
+    public List<ConviteResponse> listarDoProprietario(HttpRequest<?> req) {
+        Principal p = CurrentPrincipal.require(req);
+        return conviteRepository.findByProprietarioId(p.requireProprietarioId()).stream()
+            .map(ConviteResponse::from)
+            .toList();
+    }
+
     @Get(value = "/imoveis/{imovelId}/convites", produces = MediaType.APPLICATION_JSON)
     public List<ConviteResponse> listarPorImovel(@PathVariable UUID imovelId, HttpRequest<?> req) {
         Principal p = CurrentPrincipal.require(req);

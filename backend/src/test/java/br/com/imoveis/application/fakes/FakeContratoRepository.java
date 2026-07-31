@@ -45,4 +45,11 @@ public class FakeContratoRepository implements ContratoRepository {
     @Override public List<Pagamento> findPagamentosByContrato(UUID contratoId) {
         return new ArrayList<>(pagamentos.values().stream().filter(p -> p.contratoId().equals(contratoId)).toList());
     }
+    @Override public List<Pagamento> findPagamentosByProprietarioId(UUID proprietarioId) {
+        List<UUID> contratoIds = contratos.values().stream()
+            .filter(c -> c.proprietarioId().equals(proprietarioId))
+            .map(Contrato::id)
+            .toList();
+        return pagamentos.values().stream().filter(p -> contratoIds.contains(p.contratoId())).toList();
+    }
 }

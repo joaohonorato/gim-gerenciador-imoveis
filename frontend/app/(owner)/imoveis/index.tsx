@@ -7,12 +7,12 @@ import { session } from '@/api/session';
 import { Card } from '@/design/Card';
 import { Button } from '@/design/Button';
 import { StatusBadge } from '@/design/StatusBadge';
+import { HubHeader } from '@/design/HubHeader';
 
 export default function ImoveisScreen() {
   const [imoveis, setImoveis] = useState<Imovel[]>([]);
   const [contratosPendentes, setContratosPendentes] = useState<Contrato[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loggingOut, setLoggingOut] = useState(false);
 
   async function load() {
     try {
@@ -31,21 +31,6 @@ export default function ImoveisScreen() {
     finally { setLoading(false); }
   }
 
-  async function logout() {
-    if (loggingOut) return;
-
-    setLoggingOut(true);
-    try {
-      await apiFetch('/auth/logout', { method: 'POST' });
-    } catch {
-      // Mesmo com erro de rede/401, garantir logout local.
-    } finally {
-      await session.clear();
-      router.replace('/login');
-      setLoggingOut(false);
-    }
-  }
-
   useFocusEffect(useCallback(() => { void load(); }, []));
 
   const stats = imoveis.reduce((acc, imovel) => {
@@ -58,21 +43,9 @@ export default function ImoveisScreen() {
 
   return (
     <View className="flex-1 bg-surface">
-      <View className="px-6 pt-12 pb-4 bg-surface">
-        <View className="flex-row items-start justify-between gap-4">
-          <View className="flex-1 pr-2">
-            <Text className="text-primary mb-1" style={{ fontSize: 24, fontWeight: '800' }}>Meus imóveis</Text>
-            <Text className="text-muted" style={{ fontSize: 14 }}>
-              Acompanhe status e dados de cada imóvel cadastrado.
-            </Text>
-          </View>
-          <View className="gap-2" style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <Button testID="btn-novo-imovel" label="+ Novo imóvel" onPress={() => router.push('/imoveis/novo')} />
-            <Button testID="btn-novo-convite" label="+ Novo convite" variant="outline" onPress={() => router.push('/convites/novo')} />
-            <Button testID="btn-candidaturas" label="Candidaturas" variant="outline" onPress={() => router.push('/candidaturas')} />
-            <Button testID="btn-logout" label="Sair" onPress={logout} variant="outline" loading={loggingOut} disabled={loggingOut} />
-          </View>
-        </View>
+      <HubHeader title="Meus imóveis" subtitle="Acompanhe status e dados de cada imóvel cadastrado." />
+      <View className="px-6 pb-4">
+        <Button testID="btn-novo-imovel" label="+ Novo imóvel" onPress={() => router.push('/imoveis/novo')} />
       </View>
 
       <View className="px-6 pb-4 flex-row gap-3" style={{ flexWrap: 'wrap' }}>
