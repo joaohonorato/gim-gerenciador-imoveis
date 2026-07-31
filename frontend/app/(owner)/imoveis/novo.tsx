@@ -15,7 +15,6 @@ export default function NovoImovelScreen() {
   const [cidade, setCidade] = useState('');
   const [matricula, setMatricula] = useState('');
   const [tipoImovel, setTipoImovel] = useState<'CASA' | 'APARTAMENTO' | 'COMERCIAL' | 'OUTRO'>('CASA');
-  const [visibilidade, setVisibilidade] = useState<'PUBLICO' | 'PRIVADO'>('PUBLICO');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -125,13 +124,6 @@ export default function NovoImovelScreen() {
                 onPress={() => setTipoImovel(tipo)}
               />
             ))}
-          </View>
-        </Field>
-
-        <Field label="Visibilidade">
-          <View className="flex-row gap-2">
-            <Pill label="Público" selected={visibilidade === 'PUBLICO'} onPress={() => setVisibilidade('PUBLICO')} />
-            <Pill label="Privado" selected={visibilidade === 'PRIVADO'} onPress={() => setVisibilidade('PRIVADO')} />
           </View>
         </Field>
 

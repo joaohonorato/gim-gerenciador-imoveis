@@ -113,7 +113,7 @@ export default function ImovelDetalheScreen() {
         <DetailRow label="Matrícula" value={imovel.matricula} />
         <DetailRow label="Tipo" value={formatTipo(imovel.tipoImovel ?? undefined)} />
         <DetailRow label="Bairro" value={imovel.bairro ?? 'Não informado'} />
-        <DetailRow label="Visibilidade" value={imovel.visibilidade === 'PUBLICO' ? 'Público' : 'Privado'} />
+        <DetailRow label="Visibilidade" value={imovel.visibilidade === 'PUBLICADO' ? 'Público' : 'Privado'} />
         <Button
           label="Enviar novo convite"
           variant="outline"

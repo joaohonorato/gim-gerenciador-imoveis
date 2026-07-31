@@ -8,7 +8,7 @@ export interface Imovel {
   complemento?: string | null;
   tipoImovel?: 'CASA' | 'APARTAMENTO' | 'COMERCIAL' | 'OUTRO' | null;
   enderecoCompleto?: string;
-  visibilidade: 'PUBLICO' | 'PRIVADO';
+  visibilidade: 'PUBLICADO' | 'PRIVADO';
   unidades?: Array<{
     id: string;
     nome: string;

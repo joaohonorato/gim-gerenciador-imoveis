@@ -175,7 +175,7 @@ function getStatus(imovel: Imovel): 'VAGO' | 'RESERVADO' | 'ALUGADO' {
 }
 
 function formatVisibilidade(visibilidade: Imovel['visibilidade']) {
-  return visibilidade === 'PUBLICO' ? 'Público' : 'Privado';
+  return visibilidade === 'PUBLICADO' ? 'Público' : 'Privado';
 }
 
 function formatTipo(value?: string) {
