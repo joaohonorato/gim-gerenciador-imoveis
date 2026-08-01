@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { apiFetch } from '@/api/client';
 import { Button } from '@/design/Button';
 import { Card } from '@/design/Card';
@@ -34,6 +35,8 @@ export default function ImovelDetalheScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [revogandoToken, setRevogandoToken] = useState<string | null>(null);
+  const [enviandoFoto, setEnviandoFoto] = useState(false);
+  const [removendoFotoId, setRemovendoFotoId] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     if (!id) return;
@@ -62,6 +65,53 @@ export default function ImovelDetalheScreen() {
   }, [id]);
 
   useFocusEffect(useCallback(() => { void carregar(); }, [carregar]));
+
+  async function adicionarFoto() {
+    if (!id) return;
+    setEnviandoFoto(true);
+    setError('');
+    try {
+      const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissao.granted && Platform.OS !== 'web') {
+        throw new Error('Permissão de acesso às fotos negada.');
+      }
+      const resultado = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.9 });
+      const asset = resultado.canceled ? null : resultado.assets?.[0];
+      if (!asset) return;
+
+      const formData = new FormData();
+      if (Platform.OS === 'web' && asset.file) {
+        formData.append('foto', asset.file, asset.fileName ?? 'foto.jpg');
+      } else {
+        formData.append('foto', {
+          uri: asset.uri,
+          name: asset.fileName ?? 'foto.jpg',
+          type: asset.mimeType ?? 'image/jpeg',
+        } as unknown as Blob);
+      }
+
+      const atualizado = await apiFetch<Imovel>(`/imoveis/${id}/fotos`, { method: 'POST', body: formData });
+      setImovel(atualizado);
+    } catch (e: any) {
+      setError(e.message ?? 'Não foi possível enviar a foto');
+    } finally {
+      setEnviandoFoto(false);
+    }
+  }
+
+  async function removerFoto(fotoId: string) {
+    if (!id) return;
+    setRemovendoFotoId(fotoId);
+    setError('');
+    try {
+      const atualizado = await apiFetch<Imovel>(`/imoveis/${id}/fotos/${fotoId}`, { method: 'DELETE' });
+      setImovel(atualizado);
+    } catch (e: any) {
+      setError(e.message ?? 'Não foi possível remover a foto');
+    } finally {
+      setRemovendoFotoId(null);
+    }
+  }
 
   async function revogarConvite(token: string) {
     setRevogandoToken(token);
@@ -108,6 +158,49 @@ export default function ImovelDetalheScreen() {
       </View>
 
       {error ? <Card><Text style={{ color: '#DC2626', fontSize: 13 }}>{error}</Text></Card> : null}
+
+      <Card className="gap-3">
+        <Text className="text-primary" style={{ fontSize: 16, fontWeight: '700' }}>
+          Fotos ({imovel.fotos?.length ?? 0})
+        </Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View className="flex-row gap-3">
+            {(imovel.fotos ?? []).map((foto) => (
+              <View key={foto.id} style={{ width: 120, height: 120 }}>
+                <Image
+                  source={{ uri: foto.url }}
+                  style={{ width: 120, height: 120, borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB' }}
+                />
+                <Pressable
+                  onPress={() => removerFoto(foto.id)}
+                  disabled={removendoFotoId === foto.id}
+                  style={{
+                    position: 'absolute', top: 6, right: 6,
+                    width: 24, height: 24, borderRadius: 12,
+                    backgroundColor: 'rgba(17,24,39,0.75)',
+                    alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>×</Text>
+                </Pressable>
+              </View>
+            ))}
+            <Pressable
+              onPress={adicionarFoto}
+              disabled={enviandoFoto}
+              style={{
+                width: 120, height: 120, borderRadius: 12,
+                borderWidth: 1.5, borderColor: '#E5E7EB', borderStyle: 'dashed',
+                alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              {enviandoFoto
+                ? <ActivityIndicator color="#2563EB" />
+                : <Text style={{ color: '#6B7280', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>+ Adicionar{'\n'}foto</Text>}
+            </Pressable>
+          </View>
+        </ScrollView>
+      </Card>
 
       <Card className="gap-3">
         <Text className="text-primary" style={{ fontSize: 16, fontWeight: '700' }}>Dados do imóvel</Text>

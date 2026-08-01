@@ -23,16 +23,21 @@ public final class ImovelDtos {
                                        UnidadeStatus status, TipoImovel tipoImovel) {}
 
     @Serdeable
+    public record FotoResponse(UUID id, String url) {}
+
+    @Serdeable
     public record ImovelResponse(UUID id, UUID proprietarioId, String endereco, String cidade,
                                   String matricula, String numero, String bairro,
                                   String complemento, TipoImovel tipoImovel,
                                   String enderecoCompleto,
-                                  Visibilidade visibilidade, List<UnidadeResumo> unidades) {
-        public static ImovelResponse from(Imovel i) {
+                                  Visibilidade visibilidade, List<UnidadeResumo> unidades,
+                                  List<FotoResponse> fotos) {
+        public static ImovelResponse from(Imovel i, List<FotoResponse> fotos) {
             return new ImovelResponse(i.id(), i.proprietarioId(), i.endereco(), i.cidade(),
                 i.matricula(), i.numero(), i.bairro(), i.complemento(), i.tipoImovel(),
                 i.enderecoCompleto(), i.visibilidade(),
-                i.unidades().stream().map(UnidadeResumo::from).toList());
+                i.unidades().stream().map(UnidadeResumo::from).toList(),
+                fotos);
         }
     }
 

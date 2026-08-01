@@ -15,6 +15,7 @@ export interface Imovel {
     padrao: boolean;
     status: 'VAGO' | 'RESERVADO' | 'ALUGADO' | 'MANUTENCAO';
   }>;
+  fotos?: Array<{ id: string; url: string }>;
 }
 
 export interface Convite {
