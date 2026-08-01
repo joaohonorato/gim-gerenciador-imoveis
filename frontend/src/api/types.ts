@@ -54,6 +54,17 @@ export interface Contrato {
   statusAssinatura: 'PENDENTE' | 'ASSINADO';
   assinouProprietario: boolean;
   assinouInquilino: boolean;
+  garantiaTipo?: string | null;
+}
+
+export interface ArquivoInfo {
+  id: string;
+  nomeOriginal: string;
+}
+
+export interface DocumentosContrato {
+  documentoContrato: ArquivoInfo | null;
+  documentosGarantia: ArquivoInfo[];
 }
 
 export interface Pagamento {

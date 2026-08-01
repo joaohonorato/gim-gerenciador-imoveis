@@ -7,6 +7,7 @@
     "babel-preset-expo": "^57.0.1",
     "expo": "~57.0.2",
     "expo-constants": "~17.1.6",
+    "expo-document-picker": "~57.0.1",
     "expo-image-picker": "~57.0.7",
     "expo-router": "~5.0.4",
     "expo-status-bar": "~57.0.0",

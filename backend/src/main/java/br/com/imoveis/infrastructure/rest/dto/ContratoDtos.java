@@ -11,6 +11,7 @@ import io.micronaut.serde.annotation.Serdeable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public final class ContratoDtos {
@@ -44,4 +45,11 @@ public final class ContratoDtos {
                 p.valor().valor(), p.pagoEm(), p.status());
         }
     }
+
+    @Serdeable
+    public record ArquivoInfoResponse(UUID id, String nomeOriginal) {}
+
+    @Serdeable
+    public record DocumentosContratoResponse(ArquivoInfoResponse documentoContrato,
+                                              List<ArquivoInfoResponse> documentosGarantia) {}
 }

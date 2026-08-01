@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, Linking } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { apiFetch } from '@/api/client';
-import { Contrato, MeResponse } from '@/api/types';
+import { escolherEEnviarDocumentoContrato, escolherEEnviarDocumentoGarantia } from '@/api/documentos';
+import { ArquivoInfo, Contrato, DocumentosContrato, MeResponse } from '@/api/types';
 import { Card } from '@/design/Card';
 import { Button } from '@/design/Button';
 import { StatusBadge } from '@/design/StatusBadge';
@@ -14,6 +15,11 @@ export default function RevisarContratoScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const [documentos, setDocumentos] = useState<DocumentosContrato | null>(null);
+  const [uploadingDocumento, setUploadingDocumento] = useState(false);
+  const [uploadingGarantia, setUploadingGarantia] = useState(false);
+  const [documentosError, setDocumentosError] = useState('');
+
   useEffect(() => {
     Promise.all([
       apiFetch<Contrato>(`/contratos/${id}`),
@@ -24,7 +30,51 @@ export default function RevisarContratoScreen() {
         setMe(meData);
       })
       .catch(() => {});
+    carregarDocumentos();
   }, [id]);
+
+  function carregarDocumentos() {
+    apiFetch<DocumentosContrato>(`/contratos/${id}/documentos`)
+      .then(setDocumentos)
+      .catch(() => {});
+  }
+
+  async function abrirArquivo(arquivo: ArquivoInfo) {
+    try {
+      const { url } = await apiFetch<{ url: string }>(`/arquivos/${arquivo.id}/url`);
+      Linking.openURL(url);
+    } catch (e: any) {
+      setDocumentosError(e.message ?? 'Não foi possível abrir o arquivo');
+    }
+  }
+
+  async function enviarDocumentoContrato() {
+    if (!id) return;
+    setUploadingDocumento(true);
+    setDocumentosError('');
+    try {
+      await escolherEEnviarDocumentoContrato(id);
+      carregarDocumentos();
+    } catch (e: any) {
+      setDocumentosError(e.message ?? 'Não foi possível enviar o documento');
+    } finally {
+      setUploadingDocumento(false);
+    }
+  }
+
+  async function enviarDocumentoGarantia() {
+    if (!id) return;
+    setUploadingGarantia(true);
+    setDocumentosError('');
+    try {
+      await escolherEEnviarDocumentoGarantia(id);
+      carregarDocumentos();
+    } catch (e: any) {
+      setDocumentosError(e.message ?? 'Não foi possível enviar o documento');
+    } finally {
+      setUploadingGarantia(false);
+    }
+  }
 
   async function assinar() {
     if (!me) return;
@@ -95,8 +145,63 @@ export default function RevisarContratoScreen() {
             </View>
           ) : null}
         </Card>
+
+        <Card>
+          <Text className="text-primary mb-4" style={{ fontSize: 15, fontWeight: '700' }}>Documentos</Text>
+          {documentosError ? <Text className="mb-3" style={{ color: '#DC2626', fontSize: 13 }}>{documentosError}</Text> : null}
+
+          <View className="gap-2 mb-5">
+            <Text className="text-muted" style={{ fontSize: 13, fontWeight: '600' }}>Documento do contrato</Text>
+            {documentos?.documentoContrato ? (
+              <ArquivoRow arquivo={documentos.documentoContrato} onAbrir={abrirArquivo} />
+            ) : (
+              <Text className="text-muted" style={{ fontSize: 13 }}>Nenhum documento enviado.</Text>
+            )}
+            <Button
+              label={documentos?.documentoContrato ? 'Substituir documento' : 'Enviar documento'}
+              variant="outline"
+              onPress={enviarDocumentoContrato}
+              loading={uploadingDocumento}
+            />
+          </View>
+
+          {contrato.garantiaTipo ? (
+            <View className="gap-2">
+              <Text className="text-muted" style={{ fontSize: 13, fontWeight: '600' }}>Documentos da garantia</Text>
+              {documentos?.documentosGarantia?.length ? (
+                <View className="gap-2">
+                  {documentos.documentosGarantia.map((arquivo) => (
+                    <ArquivoRow key={arquivo.id} arquivo={arquivo} onAbrir={abrirArquivo} />
+                  ))}
+                </View>
+              ) : (
+                <Text className="text-muted" style={{ fontSize: 13 }}>Nenhum documento enviado.</Text>
+              )}
+              <Button label="Adicionar documento" variant="outline" onPress={enviarDocumentoGarantia} loading={uploadingGarantia} />
+            </View>
+          ) : null}
+        </Card>
       </View>
     </ScrollView>
+  );
+}
+
+function ArquivoRow({ arquivo, onAbrir }: { arquivo: ArquivoInfo; onAbrir: (arquivo: ArquivoInfo) => void }) {
+  return (
+    <View
+      className="flex-row items-center justify-between rounded-lg px-4 py-3"
+      style={{ borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#F5F6F8' }}
+    >
+      <Text className="text-primary" style={{ fontSize: 13, fontWeight: '600', flexShrink: 1 }} numberOfLines={1}>
+        {arquivo.nomeOriginal}
+      </Text>
+      <Text
+        onPress={() => onAbrir(arquivo)}
+        style={{ color: '#2563EB', fontSize: 13, fontWeight: '700' }}
+      >
+        Abrir
+      </Text>
+    </View>
   );
 }
 
