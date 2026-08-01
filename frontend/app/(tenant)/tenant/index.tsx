@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { apiFetch } from '@/api/client';
 import { session } from '@/api/session';
+import { Avatar } from '@/design/Avatar';
 import { Button } from '@/design/Button';
 import { Card } from '@/design/Card';
 import { StatusBadge } from '@/design/StatusBadge';
@@ -104,14 +105,17 @@ export default function TenantHomeScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void carregar(true)} />}
     >
       <View className="flex-row items-start justify-between gap-3">
-        <View className="flex-1">
-          <Text className="text-primary" style={{ fontSize: 24, fontWeight: '800' }}>
-            Olá{me?.nome ? `, ${me.nome}` : ''}
-          </Text>
-          <Text className="text-muted" style={{ fontSize: 14 }}>
-            Área do inquilino: convites, contratos e assinatura.
-          </Text>
-        </View>
+        <Pressable onPress={() => router.push('/perfil')} className="flex-row items-center gap-3 flex-1">
+          <Avatar url={me?.avatarUrl} nome={me?.nome} size={40} />
+          <View className="flex-1">
+            <Text className="text-primary" style={{ fontSize: 24, fontWeight: '800' }}>
+              Olá{me?.nome ? `, ${me.nome}` : ''}
+            </Text>
+            <Text className="text-muted" style={{ fontSize: 14 }}>
+              Área do inquilino: convites, contratos e assinatura.
+            </Text>
+          </View>
+        </Pressable>
         <Button label="Sair" variant="outline" onPress={logout} loading={loggingOut} />
       </View>
 

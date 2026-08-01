@@ -76,6 +76,7 @@ export interface MeResponse {
   nome: string | null;
   email: string | null;
   tipoConta: TipoConta;
+  avatarUrl: string | null;
 }
 
 export interface Inquilino {

@@ -71,6 +71,7 @@ export default function OwnerLayout() {
       <Tabs.Screen name="convites" options={{ title: 'Convites' }} />
       <Tabs.Screen name="candidaturas" options={{ title: 'Candidaturas' }} />
       <Tabs.Screen name="inquilinos/[id]" options={{ href: null }} />
+      <Tabs.Screen name="perfil/index" options={{ href: null }} />
     </Tabs>
   );
 }

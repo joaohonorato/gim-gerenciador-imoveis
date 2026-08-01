@@ -28,6 +28,7 @@ dependencies {
     runtimeOnly("org.flywaydb:flyway-database-postgresql")
     implementation("jakarta.annotation:jakarta.annotation-api")
     implementation("io.swagger.core.v3:swagger-annotations")
+    implementation("com.azure:azure-storage-blob:12.35.0")
 
     runtimeOnly("com.h2database:h2")
     runtimeOnly("org.postgresql:postgresql")

@@ -73,5 +73,5 @@ public final class AuthDtos {
         String senha) {}
 
     @Serdeable
-    public record MeResponse(UUID id, String nome, String email, TipoContaAcesso tipoConta) {}
+    public record MeResponse(UUID id, String nome, String email, TipoContaAcesso tipoConta, String avatarUrl) {}
 }

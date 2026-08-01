@@ -76,3 +76,5 @@ app:
       from-email: ${RESEND_FROM_EMAIL:no-reply@imoveis.local}
   test-support:
     enabled: ${APP_TEST_SUPPORT_ENABLED:true}
+  storage:
+    connection-string: ${AZURE_STORAGE_CONNECTION_STRING:}

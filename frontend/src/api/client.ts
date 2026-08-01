@@ -39,8 +39,11 @@ export async function apiFetch<T>(
   path: string,
   init?: ApiRequestOptions,
 ): Promise<T> {
+  const isFormData = typeof FormData !== 'undefined' && init?.body instanceof FormData;
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    // multipart/form-data needs its own boundary, which fetch only sets
+    // correctly when it stays unset here — never force it for FormData bodies.
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(init?.headers as Record<string, string>),
   };
 

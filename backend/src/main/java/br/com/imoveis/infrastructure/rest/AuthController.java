@@ -1,14 +1,19 @@
 package br.com.imoveis.infrastructure.rest;
 
 import br.com.imoveis.application.exception.AutenticacaoInvalidaException;
+import br.com.imoveis.application.ports.ArquivoRepository;
+import br.com.imoveis.application.ports.ArquivoStorage;
 import br.com.imoveis.application.ports.ConviteAcessoRepository;
 import br.com.imoveis.application.ports.InquilinoRepository;
 import br.com.imoveis.application.ports.ProprietarioRepository;
 import br.com.imoveis.application.usecase.AceitarConviteAcesso;
+import br.com.imoveis.application.usecase.AtualizarAvatar;
 import br.com.imoveis.application.usecase.AutenticarConta;
 import br.com.imoveis.application.usecase.CriarConviteAcessoProprietario;
 import br.com.imoveis.application.usecase.EncerrarSessao;
 import br.com.imoveis.application.usecase.RegistrarProprietarioAcesso;
+import br.com.imoveis.domain.arquivo.Arquivo;
+import br.com.imoveis.domain.arquivo.TipoArquivo;
 import br.com.imoveis.domain.auth.ConviteAcesso;
 import br.com.imoveis.domain.inquilino.Inquilino;
 import br.com.imoveis.domain.proprietario.Proprietario;
@@ -19,9 +24,16 @@ import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
+import io.micronaut.http.multipart.CompletedFileUpload;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import jakarta.validation.Valid;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Controller("/auth")
 public class AuthController {
@@ -31,26 +43,35 @@ public class AuthController {
     private final CriarConviteAcessoProprietario criarConviteAcessoProprietario;
     private final AceitarConviteAcesso aceitarConviteAcesso;
     private final EncerrarSessao encerrarSessao;
+    private final AtualizarAvatar atualizarAvatar;
     private final ConviteAcessoRepository conviteAcessoRepository;
     private final ProprietarioRepository proprietarioRepository;
     private final InquilinoRepository inquilinoRepository;
+    private final ArquivoRepository arquivoRepository;
+    private final ArquivoStorage arquivoStorage;
 
     public AuthController(AutenticarConta autenticarConta,
                           RegistrarProprietarioAcesso registrarProprietarioAcesso,
                           CriarConviteAcessoProprietario criarConviteAcessoProprietario,
                           AceitarConviteAcesso aceitarConviteAcesso,
                           EncerrarSessao encerrarSessao,
+                          AtualizarAvatar atualizarAvatar,
                           ConviteAcessoRepository conviteAcessoRepository,
                           ProprietarioRepository proprietarioRepository,
-                          InquilinoRepository inquilinoRepository) {
+                          InquilinoRepository inquilinoRepository,
+                          ArquivoRepository arquivoRepository,
+                          ArquivoStorage arquivoStorage) {
         this.autenticarConta = autenticarConta;
         this.registrarProprietarioAcesso = registrarProprietarioAcesso;
         this.criarConviteAcessoProprietario = criarConviteAcessoProprietario;
         this.aceitarConviteAcesso = aceitarConviteAcesso;
         this.encerrarSessao = encerrarSessao;
+        this.atualizarAvatar = atualizarAvatar;
         this.conviteAcessoRepository = conviteAcessoRepository;
         this.proprietarioRepository = proprietarioRepository;
         this.inquilinoRepository = inquilinoRepository;
+        this.arquivoRepository = arquivoRepository;
+        this.arquivoStorage = arquivoStorage;
     }
 
     @Post(value = "/register/proprietario", consumes = MediaType.APPLICATION_JSON, produces = MediaType.APPLICATION_JSON)
@@ -102,19 +123,46 @@ public class AuthController {
 
     @Get(value = "/me", produces = MediaType.APPLICATION_JSON)
     public MeResponse me(HttpRequest<?> request) {
+        return buildMeResponse(CurrentPrincipal.require(request));
+    }
+
+    @ExecuteOn(TaskExecutors.BLOCKING)
+    @Post(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA, produces = MediaType.APPLICATION_JSON)
+    public MeResponse atualizarAvatar(CompletedFileUpload avatar, HttpRequest<?> request) {
         Principal principal = CurrentPrincipal.require(request);
+        TipoArquivo tipo = principal.inquilinoId() != null ? TipoArquivo.AVATAR_INQUILINO : TipoArquivo.AVATAR_PROPRIETARIO;
+        UUID donoId = principal.inquilinoId() != null ? principal.inquilinoId() : principal.requireProprietarioId();
+        String contentType = avatar.getContentType().map(MediaType::toString).orElse(null);
+        try {
+            atualizarAvatar.execute(tipo, donoId, avatar.getFilename(), contentType, avatar.getSize(), avatar.getInputStream());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return buildMeResponse(principal);
+    }
+
+    private MeResponse buildMeResponse(Principal principal) {
         if (principal.inquilinoId() != null) {
             Inquilino inquilino = inquilinoRepository.findById(principal.inquilinoId())
                 .orElseThrow(() -> new AutenticacaoInvalidaException("usuário autenticado não encontrado"));
-            return new MeResponse(inquilino.id(), inquilino.nome(), inquilino.email().value(), principal.tipoConta());
+            String avatarUrl = avatarUrl(TipoArquivo.AVATAR_INQUILINO, inquilino.id());
+            return new MeResponse(inquilino.id(), inquilino.nome(), inquilino.email().value(), principal.tipoConta(), avatarUrl);
         }
 
         Proprietario proprietario = principal.proprietarioId() == null ? null : proprietarioRepository.findById(principal.proprietarioId())
             .orElseThrow(() -> new AutenticacaoInvalidaException("usuário autenticado não encontrado"));
         if (proprietario == null) {
-            return new MeResponse(null, null, null, principal.tipoConta());
+            return new MeResponse(null, null, null, principal.tipoConta(), null);
         }
-        return new MeResponse(proprietario.id(), proprietario.nome(), proprietario.email().value(), principal.tipoConta());
+        String avatarUrl = avatarUrl(TipoArquivo.AVATAR_PROPRIETARIO, proprietario.id());
+        return new MeResponse(proprietario.id(), proprietario.nome(), proprietario.email().value(), principal.tipoConta(), avatarUrl);
+    }
+
+    private String avatarUrl(TipoArquivo tipo, UUID donoId) {
+        List<Arquivo> arquivos = arquivoRepository.findByDonoIdAndTipo(donoId, tipo);
+        if (arquivos.isEmpty()) return null;
+        Arquivo avatar = arquivos.get(0);
+        return arquivoStorage.urlPublica(avatar.tipo().container(), avatar.blobKey());
     }
 
     @Post(value = "/logout")
