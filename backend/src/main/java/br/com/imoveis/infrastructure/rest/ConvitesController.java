@@ -30,6 +30,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.annotation.Status;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 import java.util.Comparator;
@@ -37,6 +38,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Controller
+@Tag(name = "Convites")
 public class ConvitesController {
 
     private final GerarConvite gerarConvite;

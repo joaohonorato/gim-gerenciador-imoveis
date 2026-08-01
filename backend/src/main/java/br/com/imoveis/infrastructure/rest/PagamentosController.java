@@ -11,11 +11,13 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Post;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.UUID;
 
 @Controller("/pagamentos")
+@Tag(name = "Pagamentos")
 public class PagamentosController {
 
     private final ConfirmarPagamento confirmar;

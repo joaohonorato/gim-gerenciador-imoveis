@@ -15,11 +15,13 @@ import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.UUID;
 
 @Controller
+@Tag(name = "Chamados")
 public class ChamadosController {
 
     private final AbrirChamado abrir;

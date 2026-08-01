@@ -16,11 +16,13 @@ import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Duration;
 import java.util.UUID;
 
 @Controller("/arquivos")
+@Tag(name = "Arquivos")
 public class ArquivosController {
 
     private static final Duration VALIDADE_SAS = Duration.ofMinutes(10);

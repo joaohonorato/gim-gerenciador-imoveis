@@ -10,10 +10,12 @@ import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.PathVariable;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.UUID;
 
 @Controller("/inquilinos")
+@Tag(name = "Inquilinos")
 public class InquilinosController {
 
     private final BuscarInquilinoDoProprietario buscar;

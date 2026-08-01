@@ -21,11 +21,13 @@ import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.Status;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.UUID;
 
 @Controller("/candidaturas")
+@Tag(name = "Candidaturas")
 public class CandidaturasController {
 
     private final AprovarCandidato aprovar;

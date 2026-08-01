@@ -19,6 +19,7 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Controller("/contratos")
+@Tag(name = "Contratos")
 public class ContratosController {
 
     private final AssinarContrato assinar;

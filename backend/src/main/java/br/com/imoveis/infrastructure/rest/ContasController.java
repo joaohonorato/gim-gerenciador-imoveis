@@ -12,11 +12,13 @@ import br.com.imoveis.infrastructure.rest.dto.ContaDtos.*;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.UUID;
 
 @Controller
+@Tag(name = "Contas")
 public class ContasController {
 
     private final RegistrarConta registrarConta;

@@ -10,9 +10,11 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.serde.annotation.Serdeable;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Controller("/test-support")
 @Requires(property = "app.test-support.enabled", value = "true")
+@Tag(name = "Test Support")
 public class TestSupportController {
 
     private final MagicLinkRepository magicLinkRepository;

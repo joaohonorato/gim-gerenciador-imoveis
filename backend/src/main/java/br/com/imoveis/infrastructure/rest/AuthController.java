@@ -12,6 +12,7 @@ import br.com.imoveis.application.usecase.AutenticarConta;
 import br.com.imoveis.application.usecase.CriarConviteAcessoProprietario;
 import br.com.imoveis.application.usecase.EncerrarSessao;
 import br.com.imoveis.application.usecase.RegistrarProprietarioAcesso;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import br.com.imoveis.domain.arquivo.Arquivo;
 import br.com.imoveis.domain.arquivo.TipoArquivo;
 import br.com.imoveis.domain.auth.ConviteAcesso;
@@ -36,6 +37,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Controller("/auth")
+@Tag(name = "Autenticação")
 public class AuthController {
 
     private final AutenticarConta autenticarConta;
