@@ -126,15 +126,33 @@ Mapear a experiência completa do produto por persona, cobrindo:
 ### A4. Revisão e assinatura de contrato (lado proprietário)
 1. Abre contrato
 2. Revisa dados (tipo, aluguel, período, status)
-3. Assina como proprietário
-4. Acompanha status até assinatura total
+3. Anexa/substitui o documento do contrato e documentos de garantia (upload real, Azure Blob Storage)
+4. Assina como proprietário
+5. Acompanha status até assinatura total
 
-**Touchpoints**: tela de contrato, API de assinatura, status.
+**Touchpoints**: tela de contrato, API de assinatura, API de documentos (`/contratos/{id}/documento`, `/contratos/{id}/garantia/documentos`), status.
 
 **Fricções atuais**:
 - contexto jurídico simplificado no MVP
 
-### A5. Logout
+### A5. Navegação por hubs (Tabs)
+1. Após login, proprietário navega por Tabs nativas: Imóveis, Contratos, Pagamentos, Convites, Candidaturas
+2. Cada hub lista os registros do proprietário logado, com ações rápidas (reenviar/revogar convite, aprovar/recusar candidatura, confirmar pagamento)
+3. Acessa perfil (avatar clicável no header) e detalhe de inquilino a partir do link do imóvel alugado, sem esses aparecerem na tab bar
+
+**Touchpoints**: `(owner)/_layout.tsx` (Tabs), hubs `contratos/`, `pagamentos/`, `convites/`, `candidaturas/`, `perfil/`, `inquilinos/[id]`.
+
+**Fricções atuais**:
+- sem wizard guiado de primeiros passos (rank 6 do plano de execução, ainda não iniciado)
+
+### A6. Perfil e avatar
+1. Acessa "Meu perfil" pelo avatar no header
+2. Troca a foto (upload real via Azure Blob Storage, container público)
+3. Avatar atualizado aparece imediatamente no header
+
+**Touchpoints**: `(owner)/perfil/index.tsx`, `POST /auth/avatar`.
+
+### A7. Logout
 1. Clica em “Sair”
 2. Front chama API de logout
 3. Backend invalida token atual
@@ -149,28 +167,45 @@ Mapear a experiência completa do produto por persona, cobrindo:
 
 ## B) Inquilino Convidado — Fluxos Implementados/Parciais
 
-### B1. Acesso por convite
-1. Recebe token de convite
-2. Abre rota de convite
-3. Visualiza contexto e preenche dados mínimos
-4. Finaliza cadastro/aceite
+### B1. Acesso por convite de locação
+1. Recebe token de convite (`(contrato)/locacao/[token].tsx`)
+2. Abre a rota do convite; se não tem conta, cadastra com senha (username/CPF/e-mail/senha) em uma única chamada; se já tem conta de inquilino, só vincula (`aceitar-vinculo`)
+3. Se o convite exige garantia, envia tipo + dados da garantia
+4. Acompanha o status da candidatura (aguardando aprovação) na mesma tela
 
-**Touchpoints**: tela de convite, API de consulta/aceite de convite.
+**Touchpoints**: `(contrato)/locacao/[token].tsx`, `POST /convites/{token}/cadastro`, `POST /convites/{token}/aceitar-vinculo`, `POST /convites/{token}/garantia`, `GET /convites/me`.
 
 **Fricções atuais**:
-- fluxo de inquilino está parcialmente via API/E2E no MVP (sem suíte completa de telas)
+- envio dos **documentos comprobatórios** da garantia (RG, comprovante de renda etc.) ainda não tem UI nesta etapa — só o tipo/dados em JSON; o upload real de arquivo de garantia só existe mais adiante, na revisão do contrato (B2), depois que ele já foi criado
 
-### B2. Assinatura de locação por convite
-1. Acessa token de locação
+### B2. Assinatura de locação por convite / revisão de contrato
+1. Acessa token de locação ou o link direto do contrato (`(contrato)/[id]/revisar.tsx`)
 2. Revisa resumo do contrato
-3. Marca aceite dos termos
+3. Confere/anexa documentos (do contrato e de garantia, upload real)
 4. Assina como inquilino
 5. Recebe confirmação
 
-**Touchpoints**: tela de locação por token, API de assinatura por convite.
+**Touchpoints**: tela de locação por token, tela de revisão de contrato, API de assinatura por convite/sessão, API de documentos.
 
 **Fricções atuais**:
 - dependência de token válido e não expirado
+
+### B3. Home do inquilino (área logada)
+1. Faz login
+2. Vê lista de contratos (com status de assinatura e dados do imóvel/proprietário)
+3. Vê convites pendentes vinculados à conta e pode aceitá-los
+4. Acessa perfil (avatar) e faz logout
+
+**Touchpoints**: `(tenant)/tenant/index.tsx`, `GET /contratos`, `GET /convites/me`.
+
+**Fricções atuais**:
+- sem abertura/acompanhamento de chamados nesta tela ainda (backend cobre, UI não — ver `docs/plano-execucao-ajustes.md`)
+
+### B4. Perfil e avatar do inquilino
+1. Acessa "Meu perfil"
+2. Troca a foto (upload real via Azure Blob Storage)
+
+**Touchpoints**: `(tenant)/perfil.tsx`, `POST /auth/avatar`.
 
 ---
 
@@ -286,8 +321,9 @@ Mapear a experiência completa do produto por persona, cobrindo:
 1. Exibir “status do logout” com feedback explícito na UI (sucesso/instabilidade)
 2. Padronizar mensagens de erro por etapa da jornada
 3. Instrumentar eventos de funil por persona
-4. Criar tela de status de candidatura para inquilino (UX completa)
-5. Consolidar mapa de rotas e permissões por persona em documentação viva
+4. ~~Criar tela de status de candidatura para inquilino (UX completa)~~ — **concluído**: `(tenant)/tenant/index.tsx` já mostra convites/candidaturas vinculados e seu status
+5. Consolidar mapa de rotas e permissões por persona em documentação viva — **avançado**: seção 5 de `docs/gerenciador-imoveis-initial-prompt.md` foi atualizada com a superfície de API real; falta a matriz explícita rota × persona (rank 7 do plano de execução)
+6. Criar UI de chamados para o inquilino (abrir/acompanhar) — backend já cobre, front só existe do lado do proprietário
 
 ---
 
@@ -361,7 +397,7 @@ Legenda: **R** = Responsible, **A** = Accountable, **C** = Consulted, **I** = In
 ---
 
 ## 11) Resumo executivo
-O MVP atual já cobre o coração da jornada do **proprietário** e parte crítica da jornada do **inquilino** (com alguns trechos ainda via API/E2E). O roadmap natural é fechar a experiência de ponta a ponta do inquilino no front e adicionar observabilidade operacional para **admin** e **suporte**.
+O MVP atual já cobre o coração da jornada do **proprietário** (agora com navegação por Tabs/hubs, perfil com avatar e documentos de contrato/garantia) e a maior parte da jornada do **inquilino** — cadastro por convite, garantia, candidatura, assinatura, home com contratos/convites e perfil com avatar já têm UI própria. O que resta no front do inquilino é essencialmente **chamados de manutenção** (abrir/acompanhar) e o **upload dos documentos comprobatórios da garantia** ainda na etapa de candidatura (hoje só depois, na revisão do contrato). O roadmap natural é fechar essas duas lacunas e adicionar observabilidade operacional para **admin** e **suporte**.
 
 ---
 

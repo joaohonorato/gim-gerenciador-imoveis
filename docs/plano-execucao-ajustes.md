@@ -21,29 +21,34 @@ Critério de ranqueamento adotado:
 
 ## 3. Backlog priorizado (ranking executivo)
 
-| Rank | Frente | Impacto | Complexidade | Risco | Prioridade |
-|---|---|---:|---:|---:|---|
-| 1 | Jornada completa do inquilino no frontend | 5 | 5 | 5 | P0 |
-| 2 | Instrumentação de funil por persona (telemetria) | 5 | 4 | 5 | P0 |
-| 3 | Padronização de erros por etapa da jornada | 4 | 4 | 4 | P1 |
-| 4 | Painel de status acionável pós-assinatura | 4 | 3 | 4 | P1 |
-| 5 | Fluxo robusto de recuperação de acesso/convites | 4 | 3 | 4 | P1 |
-| 6 | Wizard guiado no fluxo operacional do proprietário | 3 | 3 | 3 | P2 |
-| 7 | Hardening de contratos de API e permissões por persona | 3 | 3 | 3 | P2 |
-| 8 | Ajustes finos de UX em logout e mensagens contextuais | 2 | 2 | 2 | P3 |
+| Rank | Frente | Impacto | Complexidade | Risco | Prioridade | Andamento |
+|---|---|---:|---:|---:|---|---|
+| 1 | Jornada completa do inquilino no frontend | 5 | 5 | 5 | P0 | Maior parte concluída — falta chamados e visão de pagamentos do inquilino (ver 4.1) |
+| 2 | Instrumentação de funil por persona (telemetria) | 5 | 4 | 5 | P0 | Não iniciado |
+| 3 | Padronização de erros por etapa da jornada | 4 | 4 | 4 | P1 | Não iniciado |
+| 4 | Painel de status acionável pós-assinatura | 4 | 3 | 4 | P1 | Parcial — hubs de Contratos/Pagamentos/Convites/Candidaturas existem para o proprietário (navegação por Tabs); sem alertas de vencimento nem priorização por urgência ainda |
+| 5 | Fluxo robusto de recuperação de acesso/convites | 4 | 3 | 4 | P1 | Parcial — reenvio e revogação de convite já existem (`POST /convites/{token}/reenviar`, `/revogar`); sem playbook de suporte nem fluxo dedicado de token expirado |
+| 6 | Wizard guiado no fluxo operacional do proprietário | 3 | 3 | 3 | P2 | Não iniciado |
+| 7 | Hardening de contratos de API e permissões por persona | 3 | 3 | 3 | P2 | Não iniciado |
+| 8 | Ajustes finos de UX em logout e mensagens contextuais | 2 | 2 | 2 | P3 | Não iniciado |
+
+**Trabalho concluído fora deste backlog original**: feature completa de upload de arquivos (avatares de proprietário/inquilino, fotos de imóvel, documento de contrato e documentos de garantia — Azure Blob Storage, containers públicos para avatar/foto e privados com URL assinada para documentos) e fechamento do ciclo de vida do `CONVITE` (`recusado`/`revogado`/`consumido` automaticamente ao assinar o contrato). Nenhum dos dois estava rankeado aqui porque surgiu de pedidos diretos durante a execução, não do journey map original — mas ambos reduzem risco/impacto de itens já rankeados (upload de documentos cobre parte do gap de "documentação" citado no rank 1; fechamento do ciclo do convite é a base do rank 5).
 
 ---
 
 ## 4. Plano detalhado por frente
 
-## 4.1 Rank 1 — Jornada completa do inquilino no frontend (P0)
+## 4.1 Rank 1 — Jornada completa do inquilino no frontend (P0) — **em andamento, maior parte concluída**
 Escopo:
-- telas de cadastro do inquilino por convite
-- fluxo de envio/confirmação de garantia
-- acompanhamento de candidatura
-- revisão e assinatura do contrato pelo inquilino
-- visão de contratos e pagamentos do inquilino
-- abertura e acompanhamento de chamados
+- ✅ telas de cadastro do inquilino por convite (`(contrato)/locacao/[token].tsx`)
+- ✅ fluxo de envio/confirmação de garantia (tipo + dados JSON na candidatura)
+- ✅ acompanhamento de candidatura (status visível em `(tenant)/tenant/index.tsx` e na própria tela de convite)
+- ✅ revisão e assinatura do contrato pelo inquilino (`(contrato)/[id]/revisar.tsx`), incluindo upload de documento do contrato e de garantia
+- ✅ visão de contratos do inquilino (home do tenant)
+- ✅ perfil com avatar (`(tenant)/perfil.tsx`)
+- ❌ **pendente**: abertura e acompanhamento de chamados pelo inquilino (backend 100% coberto, sem tela)
+- ❌ **pendente**: upload dos documentos comprobatórios da garantia já na etapa de candidatura/convite (hoje só existe upload de documento depois, na revisão do contrato — ver B1/B2 em `docs/journey-map.md`)
+- ❌ **pendente**: visão de pagamentos do inquilino (proprietário já tem hub de pagamentos; inquilino ainda não tem uma visão equivalente dos próprios pagamentos)
 
 Dependências:
 - validação de endpoints existentes
@@ -55,8 +60,9 @@ Entregáveis:
 - testes E2E cobrindo a jornada
 
 Critério de pronto:
-- inquilino conclui jornada convite -> assinatura sem usar API manual
-- testes E2E estáveis e verdes
+- inquilino conclui jornada convite -> assinatura sem usar API manual (**atingido** para o caminho principal — cadastro, garantia, aprovação, assinatura)
+- chamados e visão de pagamentos do inquilino também com UI própria (**não atingido**)
+- testes E2E estáveis e verdes (**atingido** — golden-path cobre o caminho principal ponta a ponta)
 
 ---
 
