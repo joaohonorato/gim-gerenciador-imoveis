@@ -11,10 +11,23 @@ O build do frontend embute a URL pública do backend (build-time, não runtime �
 1. **Supabase** (manual — precisa da sua conta, não dá pra scriptar sem um token pessoal do Supabase): criar projeto. Em *Project Settings → Database → Connection pooling*, pegar host/usuário do **pooler em modo Session** (porta `5432`, não a `6543` de modo Transaction — ver gotcha 3). Usuário vem no formato `postgres.<project-ref>`, não só `postgres`.
 2. `az login` e `gh auth login` (se ainda não estiver autenticado — `gh` já costuma estar).
 3. `cp deploy/.env.azure.example deploy/.env.azure` e preencher: nomes dos recursos Azure, `GITHUB_REPO` e os dados de conexão do Supabase do passo 1.
-4. Rodar `./deploy/azure-setup.sh`. Ele cria resource group, Container Apps environment, o Container App (com um placeholder até o primeiro deploy real) já configurado com as env vars do Supabase, o Static Web App, e fecha o loop de CORS sozinho (sabe a URL do frontend assim que cria o recurso, não precisa esperar um deploy). No final, publica `AZURE_CREDENTIALS`, `AZURE_RESOURCE_GROUP`, `AZURE_CONTAINERAPPS_ENV`, `AZURE_STATIC_WEB_APPS_API_TOKEN` e `EXPO_PUBLIC_API_URL` como GitHub Secrets. É seguro rodar de novo (idempotente — pula o que já existe, reatualiza env vars e credenciais).
-5. Dar push na `main` (ou disparar os workflows manualmente) — os dois workflows em `.github/workflows/azure-*.yml` cuidam do build e deploy real de backend e frontend a partir daí.
+4. (Opcional, recomendado antes de rodar contra uma subscription com recursos reais) `./deploy/azure-setup.sh --what-if` — mostra só a parte declarativa (Container Apps environment + Storage Account, ver "Bicep" abaixo) sem aplicar nada.
+5. Rodar `./deploy/azure-setup.sh`. Ele cria resource group, aplica o template Bicep (Container Apps environment + Storage Account com os 3 containers), cria o Container App (com um placeholder até o primeiro deploy real) já configurado com as env vars do Supabase, os dois Static Web Apps (app + landing), e fecha o loop de CORS sozinho (sabe a URL do frontend assim que cria o recurso, não precisa esperar um deploy). No final, publica `AZURE_CREDENTIALS`, `AZURE_RESOURCE_GROUP`, `AZURE_CONTAINERAPPS_ENV`, `AZURE_CONTAINER_APP_NAME`, `AZURE_STATIC_WEB_APPS_API_TOKEN`, `AZURE_LANDING_STATIC_WEB_APPS_API_TOKEN`, `EXPO_PUBLIC_API_URL` e `AZURE_STORAGE_CONNECTION_STRING` como GitHub Secrets. É seguro rodar de novo (idempotente — pula o que já existe, reatualiza env vars e credenciais).
+6. Dar push na `main` (ou disparar os workflows manualmente) — os dois workflows em `.github/workflows/azure-*.yml` cuidam do build e deploy real de backend e frontend a partir daí.
 
 Testado de ponta a ponta contra uma subscription real (não só revisado) — backend e frontend estão no ar. Três bugs reais apareceram só ao rodar de verdade, todos corrigidos no script: resource providers não registrados (`Microsoft.OperationalInsights`, `Microsoft.Web` — comuns em subscription nova, o script não registra sozinho, tem que rodar `az provider register -n <nome> --wait` manualmente se acontecer), região sem capacidade (`eastus` deu `AKSCapacityHeavyUsage` — daí o default ter virado `eastus2`), e mangling de path/CRLF do git-bash na geração do `AZURE_CREDENTIALS` (dois bugs distintos, ver histórico de commits de `deploy/azure-setup.sh`).
+
+## Bicep (provisionamento parcialmente declarativo)
+
+`deploy/bicep/main.bicep` + `deploy/bicep/modules/` definem, de forma declarativa, os únicos recursos onde um `az deployment group what-if` real contra a subscription de produção confirmou que reaplicar é um no-op seguro (só diffs em propriedades computadas pela Azure — default batendo com default): o **Container Apps environment** (+ Log Analytics workspace) e o **Storage Account** (+ os 3 containers de avatares/fotos/documentos). `deploy/azure-setup.sh` chama `az deployment group create` com esse template antes de tocar em qualquer outra coisa.
+
+**Deliberadamente fora do Bicep**, e por quê (ver o comentário de cabeçalho de `main.bicep` para o detalhe técnico completo):
+
+- **O Container App do backend.** A credencial de pull do GHCR fica guardada como um *secret* do próprio Container App (`configuration.secrets` + `registries[].passwordSecretRef`), e `az containerapp show` nunca retorna o valor de um secret — não tem como ler o valor atual e repassar de volta por um parâmetro Bicep com segurança. Reaplicar sem esse valor arriscaria repetir a gotcha 6 (credencial de pull sumindo, réplicas travadas em 0). O Container App continua 100% no caminho imperativo (`az containerapp create`/`update`), do jeito que sempre esteve.
+- **Os dois Static Web Apps.** Um `what-if` real contra eles mostrou diffs em `deploymentAuthPolicy`, `provider`, `repositoryUrl`, `branch` — propriedades que plausivelmente controlam como o deploy baseado em token (usado pelos workflows) se autentica. Não dava pra confirmar com certeza se reaplicar de fato zera essas propriedades ou se é só o `what-if` reportando "não está no template" sem efeito real — e não é hipótese pra testar contra recursos servindo tráfego real. Ficam no caminho imperativo (`az staticwebapp create`), como antes.
+- **A zona DNS / domínio customizado.** Já hospeda registros de e-mail do Resend (DKIM/SPF/DMARC) sem relação com o Container App, e o fluxo de vínculo do domínio raiz é assíncrono/multi-rodada (token de validação, polling de propagação — ver seção "Domínio customizado" abaixo) — não é uma boa forma de "recurso declarativo". `deploy/azure-custom-domain.sh` não mudou.
+
+Validação antes de qualquer mudança real: `az bicep build --file deploy/bicep/main.bicep` (só sintaxe, não toca Azure) e `az deployment group what-if` (o `--what-if` do `azure-setup.sh` acima, somente leitura, mostra exatamente o que mudaria).
 
 ## Domínio customizado (opcional)
 
@@ -23,6 +36,14 @@ Testado de ponta a ponta contra uma subscription real (não só revisado) — ba
 Depois que vincular, dispara o workflow do frontend novamente (`gh workflow run azure-static-web-apps.yml`) — `EXPO_PUBLIC_API_URL` mudou e é build-time.
 
 A parte de vínculo de domínio (`az staticwebapp hostname set` / `az containerapp hostname bind`) não foi testada ainda enquanto este doc era escrito — depende de propagação de DNS que leva tempo real. Mesmo aviso do restante do script: revisado com cuidado, mas confirme o resultado.
+
+## Storage de arquivos (avatares, fotos, documentos)
+
+Definido em `deploy/bicep/modules/storage.bicep` (ver seção "Bicep" acima) — Storage Account (nome em `AZURE_STORAGE_ACCOUNT_NAME` de `deploy/.env.azure`, ex. `gimimoveisstorage`) com 3 containers: `avatares` e `fotos-imoveis` (acesso público a nível de blob — URL direta, sem SAS) e `documentos` (privado — só acessível via URL assinada de curta duração, gerada sob demanda pelo backend em `GET /arquivos/{id}/url`). `deploy/azure-setup.sh` injeta a connection string (saída do deployment Bicep) como env var `AZURE_STORAGE_CONNECTION_STRING` no Container App e publica o mesmo valor como GitHub Secret (usado só localmente via `.env.local`, não pelo workflow — o backend lê a env var diretamente do Container App em produção).
+
+## Schema do banco (Flyway)
+
+Diferente de quando este doc foi escrito, o schema **não é mais gerenciado por `hibernate.hbm2ddl.auto=update`** — é dono do Flyway (`backend/src/main/resources/db/migration/`). Em produção, `HIBERNATE_DDL_AUTO` deve ficar em `validate` (o default do `application.yml` já é esse) — o Flyway aplica as migrations no boot; o Hibernate só confere se as entidades batem com o schema resultante, nunca altera nada. Um banco Supabase vazio roda todas as migrations `Vn__*.sql` do zero; um banco já provisionado antes da adoção do Flyway (sem a tabela `flyway_schema_history`) é baselineado automaticamente na V1 (`baseline-on-migrate: true`, `baseline-version: 1`) e só aplica migrations *depois* dela. **Qualquer mudança de schema em produção precisa de uma migration nova**, não só mudar a entidade JPA — ver `README.md` para o fluxo completo.
 
 ## Variáveis de ambiente do Container App (backend)
 
@@ -34,7 +55,8 @@ A parte de vínculo de domínio (`az staticwebapp hostname set` / `az containera
 | `DB_USER` | `postgres.<project-ref>` (formato do pooler, não só `postgres`) |
 | `DB_PASSWORD` | senha do banco definida na criação do projeto Supabase |
 | `DB_SSLMODE` | `require` (Supabase exige SSL; o default do app é `prefer`, que já funciona, mas `require` é mais explícito) |
-| `HIBERNATE_DDL_AUTO` | `update` (sem migrations reais no MVP — mesmo trade-off documentado no runbook antigo do Railway) |
+| `HIBERNATE_DDL_AUTO` | `validate` (default do `application.yml`) — schema é gerenciado por Flyway, não editar isso pra `update`/`create` em produção (ver seção "Schema do banco" acima) |
+| `AZURE_STORAGE_CONNECTION_STRING` | connection string do Storage Account (`deploy/bicep/modules/storage.bicep`) — habilita avatar/foto/documento; em branco, os endpoints de upload ficam indisponíveis (skip gracioso, mesmo padrão do `RESEND_API_KEY`) |
 | `CORS_ALLOWED_ORIGIN_1` | URL pública do Static Web App |
 | `APP_CONVITES_FRONTEND_BASE_URL` | mesma URL do Static Web App |
 | `APP_TEST_SUPPORT_ENABLED` | `false` — **obrigatório em produção**, os endpoints de test-support expõem tokens sem autenticação |
@@ -44,7 +66,7 @@ A parte de vínculo de domínio (`az staticwebapp hostname set` / `az containera
 
 ## GitHub Secrets necessários
 
-Todos publicados automaticamente por `deploy/azure-setup.sh` — a tabela é só referência.
+Todos publicados automaticamente por `deploy/azure-setup.sh` (parte Bicep + parte imperativa, ver seção "Bicep" acima) — a tabela é só referência.
 
 | Secret | Usado por | Origem |
 |---|---|---|
@@ -53,6 +75,7 @@ Todos publicados automaticamente por `deploy/azure-setup.sh` — a tabela é só
 | `AZURE_STATIC_WEB_APPS_API_TOKEN` | workflow do frontend (app) | `az staticwebapp secrets list -n $AZURE_STATIC_WEB_APP_NAME` |
 | `AZURE_LANDING_STATIC_WEB_APPS_API_TOKEN` | workflow da landing | `az staticwebapp secrets list -n $AZURE_LANDING_APP_NAME` |
 | `EXPO_PUBLIC_API_URL` | workflow do frontend | URL pública do Container App, resolvida pelo script |
+| `AZURE_STORAGE_CONNECTION_STRING` | não usado por workflow (só referência local) | saída (`output`) do deployment Bicep, publicado pra conveniência de quem for configurar `.env.local` — o valor que importa em produção é a env var do Container App, setada pelo mesmo script |
 | `GHCR_PAT` | workflow do backend | **manual, não publicado pelo script** — PAT clássico (github.com/settings/tokens/new) com escopo `write:packages` (inclui read), sem expiração curta. Ver gotcha 6, é obrigatório, não opcional. |
 
 Registry é **GHCR** (`ghcr.io`, grátis), não Azure Container Registry (sem tier grátis) — mas precisa do `GHCR_PAT` acima, não dá pra usar só o `GITHUB_TOKEN` do workflow.
