@@ -1,8 +1,8 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { View, Text, FlatList } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { apiFetch, ApiException } from '@/api/client';
-import { Contrato, Imovel } from '@/api/types';
+import { Contrato, Imovel, Inquilino } from '@/api/types';
 import { session } from '@/api/session';
 import { Card } from '@/design/Card';
 import { Button } from '@/design/Button';
@@ -11,7 +11,8 @@ import { HubHeader } from '@/design/HubHeader';
 
 export default function ImoveisScreen() {
   const [imoveis, setImoveis] = useState<Imovel[]>([]);
-  const [contratosPendentes, setContratosPendentes] = useState<Contrato[]>([]);
+  const [contratos, setContratos] = useState<Contrato[]>([]);
+  const [inquilinos, setInquilinos] = useState<Record<string, Inquilino>>({});
   const [loading, setLoading] = useState(true);
 
   async function load() {
@@ -21,7 +22,19 @@ export default function ImoveisScreen() {
         apiFetch<Contrato[]>('/contratos'),
       ]);
       setImoveis(imoveisData);
-      setContratosPendentes(contratosData.filter((c) => c.statusAssinatura === 'PENDENTE' && !c.assinouProprietario));
+      setContratos(contratosData);
+
+      const inquilinoIds = [...new Set(
+        contratosData.filter((c) => c.statusAssinatura === 'ASSINADO').map((c) => c.inquilinoId),
+      )];
+      const pares = await Promise.all(inquilinoIds.map(async (id) => {
+        try {
+          return [id, await apiFetch<Inquilino>(`/inquilinos/${id}`)] as const;
+        } catch {
+          return null;
+        }
+      }));
+      setInquilinos(Object.fromEntries(pares.filter((p): p is readonly [string, Inquilino] => p != null)));
     } catch (e) {
       if (e instanceof ApiException && e.status === 401) {
         await session.clear();
@@ -32,6 +45,19 @@ export default function ImoveisScreen() {
   }
 
   useFocusEffect(useCallback(() => { void load(); }, []));
+
+  const contratosPendentes = useMemo(
+    () => contratos.filter((c) => c.statusAssinatura === 'PENDENTE' && !c.assinouProprietario),
+    [contratos],
+  );
+
+  const contratoAtivoPorUnidade = useMemo(() => {
+    const map = new Map<string, Contrato>();
+    for (const c of contratos) {
+      if (c.statusAssinatura === 'ASSINADO') map.set(c.unidadeId, c);
+    }
+    return map;
+  }, [contratos]);
 
   const stats = imoveis.reduce((acc, imovel) => {
     const status = getStatus(imovel);
@@ -87,40 +113,63 @@ export default function ImoveisScreen() {
             keyExtractor={i => i.id}
             contentContainerClassName="px-6 pb-6 gap-3"
             ListEmptyComponent={<Text className="text-center text-muted mt-8">Nenhum imóvel cadastrado.</Text>}
-            renderItem={({ item }) => (
-              <Card className="gap-3">
-                <View className="flex-row items-start justify-between gap-3">
-                  <View className="flex-1">
-                    <Text testID={`imovel-${item.id}`} className="text-primary" style={{ fontSize: 16, fontWeight: '700' }}>{item.endereco}</Text>
-                    <Text className="text-muted mt-1" style={{ fontSize: 14 }}>{item.cidade}</Text>
-                  </View>
-                  <StatusBadge status={getStatus(item)} />
-                </View>
+            renderItem={({ item }) => {
+              const status = getStatus(item);
+              const unidadePadrao = item.unidades?.find((u) => u.padrao) ?? item.unidades?.[0];
+              const contratoAtivo = unidadePadrao ? contratoAtivoPorUnidade.get(unidadePadrao.id) : undefined;
+              const inquilino = contratoAtivo ? inquilinos[contratoAtivo.inquilinoId] : undefined;
 
-                <View className="flex-row justify-between gap-3">
-                  <View className="flex-1">
-                    <Text className="text-muted" style={{ fontSize: 13 }}>Matrícula</Text>
-                    <Text className="text-primary mt-1" style={{ fontSize: 14, fontWeight: '600' }}>{item.matricula}</Text>
+              return (
+                <Card className="gap-3">
+                  <View className="flex-row items-start justify-between gap-3">
+                    <View className="flex-1">
+                      <Text testID={`imovel-${item.id}`} className="text-primary" style={{ fontSize: 16, fontWeight: '700' }}>{item.endereco}</Text>
+                      <Text className="text-muted mt-1" style={{ fontSize: 14 }}>{item.cidade}</Text>
+                    </View>
+                    <StatusBadge status={status} />
                   </View>
-                  <View className="flex-1">
-                    <Text className="text-muted" style={{ fontSize: 13 }}>Visibilidade</Text>
-                    <Text className="text-primary mt-1" style={{ fontSize: 14, fontWeight: '600' }}>{formatVisibilidade(item.visibilidade)}</Text>
-                  </View>
-                </View>
 
-                <View className="flex-row gap-2">
-                  <Button
-                    label="Ver detalhes"
-                    onPress={() => router.push(`/imoveis/${item.id}`)}
-                  />
-                  <Button
-                    label="Enviar convite"
-                    variant="outline"
-                    onPress={() => router.push(`/imoveis/${item.id}/convite`)}
-                  />
-                </View>
-              </Card>
-            )}
+                  <View className="flex-row justify-between gap-3">
+                    <View className="flex-1">
+                      <Text className="text-muted" style={{ fontSize: 13 }}>Matrícula</Text>
+                      <Text className="text-primary mt-1" style={{ fontSize: 14, fontWeight: '600' }}>{item.matricula}</Text>
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-muted" style={{ fontSize: 13 }}>Visibilidade</Text>
+                      <Text className="text-primary mt-1" style={{ fontSize: 14, fontWeight: '600' }}>{formatVisibilidade(item.visibilidade)}</Text>
+                    </View>
+                  </View>
+
+                  {status === 'ALUGADO' && contratoAtivo ? (
+                    <View className="rounded-xl px-4 py-3" style={{ borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#F5F6F8' }}>
+                      <Text className="text-muted" style={{ fontSize: 13 }}>Inquilino</Text>
+                      <Text className="text-primary mt-1" style={{ fontSize: 14, fontWeight: '600' }}>
+                        {inquilino?.nome ?? 'Carregando...'}
+                      </Text>
+                      <View className="mt-2">
+                        <Button
+                          label="Ver detalhes do inquilino"
+                          variant="outline"
+                          onPress={() => router.push(`/inquilinos/${contratoAtivo.inquilinoId}`)}
+                        />
+                      </View>
+                    </View>
+                  ) : null}
+
+                  <View className="flex-row gap-2">
+                    <Button
+                      label="Ver detalhes"
+                      onPress={() => router.push(`/imoveis/${item.id}`)}
+                    />
+                    <Button
+                      label="Enviar convite"
+                      variant="outline"
+                      onPress={() => router.push(`/imoveis/${item.id}/convite`)}
+                    />
+                  </View>
+                </Card>
+              );
+            }}
           />
         )
       }

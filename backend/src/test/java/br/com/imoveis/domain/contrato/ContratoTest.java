@@ -14,7 +14,7 @@ class ContratoTest {
 
     private Contrato novoContrato() {
         return Contrato.novo(
-            UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+            UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
             new Periodo(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)),
             TipoContrato.RESIDENCIAL, Dinheiro.of(2500), "IPCA");
     }

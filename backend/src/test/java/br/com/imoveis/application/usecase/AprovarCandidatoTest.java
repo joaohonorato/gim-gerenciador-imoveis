@@ -57,7 +57,7 @@ class AprovarCandidatoTest {
         Imovel imovel = Imovel.cadastrar(proprietarioId, "Rua A", "SP", "M-1");
         imovelRepo.save(imovel);
 
-        Contrato existente = Contrato.novo(imovel.unidadePadrao().id(), UUID.randomUUID(), proprietarioId,
+        Contrato existente = Contrato.novo(imovel.unidadePadrao().id(), UUID.randomUUID(), proprietarioId, UUID.randomUUID(),
             new Periodo(LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31)),
             TipoContrato.RESIDENCIAL, Dinheiro.of(2000), "IPCA");
         existente.definirGarantia(GarantiaTipo.CAUCAO, LocalDate.of(2027, 5, 31), "{}");

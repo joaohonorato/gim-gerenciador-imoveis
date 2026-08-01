@@ -25,6 +25,9 @@ public class ContratoJpaEntity {
     @Column(name = "proprietario_id", nullable = false)
     private UUID proprietarioId;
 
+    @Column(name = "convite_id")
+    private UUID conviteId;
+
     @Column(name = "data_inicio", nullable = false)
     private LocalDate dataInicio;
 
@@ -75,6 +78,9 @@ public class ContratoJpaEntity {
 
     public UUID getProprietarioId() { return proprietarioId; }
     public void setProprietarioId(UUID proprietarioId) { this.proprietarioId = proprietarioId; }
+
+    public UUID getConviteId() { return conviteId; }
+    public void setConviteId(UUID conviteId) { this.conviteId = conviteId; }
 
     public LocalDate getDataInicio() { return dataInicio; }
     public void setDataInicio(LocalDate dataInicio) { this.dataInicio = dataInicio; }

@@ -54,7 +54,7 @@ public class AprovarCandidato {
                 throw new ConflitoException("já existe contrato assinado com período sobreposto na unidade");
             });
 
-        Contrato contrato = Contrato.novo(convite.unidadeId(), candidatura.inquilinoId(), proprietarioId,
+        Contrato contrato = Contrato.novo(convite.unidadeId(), candidatura.inquilinoId(), proprietarioId, convite.id(),
             periodo, condicoes.tipoContrato(), condicoes.valorAluguel(), "IPCA");
 
         boolean exigeGarantia = condicoes.garantiaAceita() != null && condicoes.garantiaAceita() != GarantiaTipo.NENHUMA;

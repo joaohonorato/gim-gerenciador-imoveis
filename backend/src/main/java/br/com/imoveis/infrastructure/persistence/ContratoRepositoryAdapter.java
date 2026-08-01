@@ -42,6 +42,7 @@ public class ContratoRepositoryAdapter implements ContratoRepository {
         e.setUnidadeId(c.unidadeId());
         e.setInquilinoId(c.inquilinoId());
         e.setProprietarioId(c.proprietarioId());
+        e.setConviteId(c.conviteId());
         e.setDataInicio(c.periodo().inicio());
         e.setDataFim(c.periodo().fim());
         e.setTipo(c.tipo());
@@ -134,7 +135,7 @@ public class ContratoRepositoryAdapter implements ContratoRepository {
         Garantia garantia = e.getGarantiaTipo() == null ? null : Garantia.reconstituir(
             e.getGarantiaId(), e.getId(), e.getGarantiaTipo(),
             e.getGarantiaVencimento(), e.getGarantiaDados());
-        return Contrato.reconstituir(e.getId(), e.getUnidadeId(), e.getInquilinoId(), e.getProprietarioId(),
+        return Contrato.reconstituir(e.getId(), e.getUnidadeId(), e.getInquilinoId(), e.getProprietarioId(), e.getConviteId(),
             new Periodo(e.getDataInicio(), e.getDataFim()), e.getTipo(),
             new Dinheiro(e.getValorAluguel()), e.getIndiceReajuste(),
             e.getStatusAssinatura(), assinaturas, garantia, pagamentos);

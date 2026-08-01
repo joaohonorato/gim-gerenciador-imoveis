@@ -17,6 +17,7 @@ public class Contrato {
     private final UUID unidadeId;
     private final UUID inquilinoId;
     private final UUID proprietarioId;
+    private final UUID conviteId;
     private final Periodo periodo;
     private final TipoContrato tipo;
     private final Dinheiro valorAluguel;
@@ -26,7 +27,7 @@ public class Contrato {
     private Garantia garantia;
     private final List<Pagamento> pagamentos;
 
-    private Contrato(UUID id, UUID unidadeId, UUID inquilinoId, UUID proprietarioId, Periodo periodo,
+    private Contrato(UUID id, UUID unidadeId, UUID inquilinoId, UUID proprietarioId, UUID conviteId, Periodo periodo,
                      TipoContrato tipo, Dinheiro valorAluguel, String indiceReajuste,
                      ContratoAssinaturaStatus status, EnumSet<ParteContrato> assinaturas,
                      Garantia garantia, List<Pagamento> pagamentos) {
@@ -34,6 +35,7 @@ public class Contrato {
         this.unidadeId = unidadeId;
         this.inquilinoId = inquilinoId;
         this.proprietarioId = proprietarioId;
+        this.conviteId = conviteId;
         this.periodo = periodo;
         this.tipo = tipo;
         this.valorAluguel = valorAluguel;
@@ -44,7 +46,7 @@ public class Contrato {
         this.pagamentos = pagamentos;
     }
 
-    public static Contrato novo(UUID unidadeId, UUID inquilinoId, UUID proprietarioId,
+    public static Contrato novo(UUID unidadeId, UUID inquilinoId, UUID proprietarioId, UUID conviteId,
                                  Periodo periodo, TipoContrato tipo, Dinheiro valorAluguel,
                                  String indiceReajuste) {
         Objects.requireNonNull(unidadeId, "unidadeId obrigatório");
@@ -53,18 +55,18 @@ public class Contrato {
         Objects.requireNonNull(periodo, "periodo obrigatório");
         Objects.requireNonNull(tipo, "tipo obrigatório");
         Objects.requireNonNull(valorAluguel, "valorAluguel obrigatório");
-        return new Contrato(UUID.randomUUID(), unidadeId, inquilinoId, proprietarioId, periodo,
+        return new Contrato(UUID.randomUUID(), unidadeId, inquilinoId, proprietarioId, conviteId, periodo,
             tipo, valorAluguel, indiceReajuste == null ? "IPCA" : indiceReajuste,
             ContratoAssinaturaStatus.PENDENTE, EnumSet.noneOf(ParteContrato.class),
             null, new ArrayList<>());
     }
 
-    public static Contrato reconstituir(UUID id, UUID unidadeId, UUID inquilinoId, UUID proprietarioId,
+    public static Contrato reconstituir(UUID id, UUID unidadeId, UUID inquilinoId, UUID proprietarioId, UUID conviteId,
                                          Periodo periodo, TipoContrato tipo, Dinheiro valorAluguel,
                                          String indiceReajuste, ContratoAssinaturaStatus status,
                                          EnumSet<ParteContrato> assinaturas, Garantia garantia,
                                          List<Pagamento> pagamentos) {
-        return new Contrato(id, unidadeId, inquilinoId, proprietarioId, periodo, tipo, valorAluguel,
+        return new Contrato(id, unidadeId, inquilinoId, proprietarioId, conviteId, periodo, tipo, valorAluguel,
             indiceReajuste, status, EnumSet.copyOf(assinaturas.isEmpty() ? EnumSet.noneOf(ParteContrato.class) : assinaturas),
             garantia, new ArrayList<>(pagamentos));
     }
@@ -99,6 +101,7 @@ public class Contrato {
     public UUID unidadeId() { return unidadeId; }
     public UUID inquilinoId() { return inquilinoId; }
     public UUID proprietarioId() { return proprietarioId; }
+    public UUID conviteId() { return conviteId; }
     public Periodo periodo() { return periodo; }
     public TipoContrato tipo() { return tipo; }
     public Dinheiro valorAluguel() { return valorAluguel; }
