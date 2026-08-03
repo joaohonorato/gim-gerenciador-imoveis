@@ -1,5 +1,6 @@
 package br.com.imoveis.domain.imovel;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -19,10 +20,18 @@ public class Imovel {
     private TipoImovel tipoImovel;
     private Visibilidade visibilidade;
     private final List<Unidade> unidades;
+    private Integer quartos;
+    private Integer banheiros;
+    private Integer vagas;
+    private BigDecimal areaM2;
+    private BigDecimal iptu;
+    private String cep;
 
     private Imovel(UUID id, UUID proprietarioId, String endereco, String cidade,
                    String matricula, String numero, String bairro, String complemento,
-                   TipoImovel tipoImovel, Visibilidade visibilidade, List<Unidade> unidades) {
+                   TipoImovel tipoImovel, Visibilidade visibilidade, List<Unidade> unidades,
+                   Integer quartos, Integer banheiros, Integer vagas, BigDecimal areaM2,
+                   BigDecimal iptu, String cep) {
         this.id = id;
         this.proprietarioId = proprietarioId;
         this.endereco = endereco;
@@ -34,6 +43,12 @@ public class Imovel {
         this.tipoImovel = tipoImovel;
         this.visibilidade = visibilidade;
         this.unidades = unidades;
+        this.quartos = quartos;
+        this.banheiros = banheiros;
+        this.vagas = vagas;
+        this.areaM2 = areaM2;
+        this.iptu = iptu;
+        this.cep = normalizarOpcional(cep);
     }
 
     public static Imovel cadastrar(UUID proprietarioId, String endereco, String cidade, String matricula) {
@@ -42,6 +57,14 @@ public class Imovel {
 
     public static Imovel cadastrar(UUID proprietarioId, String endereco, String cidade, String matricula,
                                    String numero, String bairro, String complemento, TipoImovel tipoImovel) {
+        return cadastrar(proprietarioId, endereco, cidade, matricula, numero, bairro, complemento, tipoImovel,
+            null, null, null, null, null, null);
+    }
+
+    public static Imovel cadastrar(UUID proprietarioId, String endereco, String cidade, String matricula,
+                                   String numero, String bairro, String complemento, TipoImovel tipoImovel,
+                                   Integer quartos, Integer banheiros, Integer vagas, BigDecimal areaM2,
+                                   BigDecimal iptu, String cep) {
         Objects.requireNonNull(proprietarioId, "proprietarioId obrigatório");
         exigirNaoBranco(endereco, "endereco");
         exigirNaoBranco(cidade, "cidade");
@@ -51,7 +74,8 @@ public class Imovel {
         unidades.add(Unidade.novaPadrao(id));
         return new Imovel(id, proprietarioId, endereco.trim(), cidade.trim(),
             matricula.trim(), normalizarOpcional(numero), normalizarOpcional(bairro),
-            normalizarOpcional(complemento), tipoImovel, Visibilidade.PRIVADO, unidades);
+            normalizarOpcional(complemento), tipoImovel, Visibilidade.PRIVADO, unidades,
+            quartos, banheiros, vagas, areaM2, iptu, cep);
     }
 
     public static Imovel reconstituir(UUID id, UUID proprietarioId, String endereco, String cidade,
@@ -62,8 +86,18 @@ public class Imovel {
     public static Imovel reconstituir(UUID id, UUID proprietarioId, String endereco, String cidade,
                                       String matricula, String numero, String bairro, String complemento,
                                       TipoImovel tipoImovel, Visibilidade visibilidade, List<Unidade> unidades) {
+        return reconstituir(id, proprietarioId, endereco, cidade, matricula, numero, bairro, complemento,
+            tipoImovel, visibilidade, unidades, null, null, null, null, null, null);
+    }
+
+    public static Imovel reconstituir(UUID id, UUID proprietarioId, String endereco, String cidade,
+                                      String matricula, String numero, String bairro, String complemento,
+                                      TipoImovel tipoImovel, Visibilidade visibilidade, List<Unidade> unidades,
+                                      Integer quartos, Integer banheiros, Integer vagas, BigDecimal areaM2,
+                                      BigDecimal iptu, String cep) {
         return new Imovel(id, proprietarioId, endereco, cidade, matricula, numero,
-            bairro, complemento, tipoImovel, visibilidade, new ArrayList<>(unidades));
+            bairro, complemento, tipoImovel, visibilidade, new ArrayList<>(unidades),
+            quartos, banheiros, vagas, areaM2, iptu, cep);
     }
 
     public Unidade unidadePadrao() {
@@ -106,4 +140,10 @@ public class Imovel {
     public TipoImovel tipoImovel() { return tipoImovel; }
     public Visibilidade visibilidade() { return visibilidade; }
     public List<Unidade> unidades() { return Collections.unmodifiableList(unidades); }
+    public Integer quartos() { return quartos; }
+    public Integer banheiros() { return banheiros; }
+    public Integer vagas() { return vagas; }
+    public BigDecimal areaM2() { return areaM2; }
+    public BigDecimal iptu() { return iptu; }
+    public String cep() { return cep; }
 }

@@ -5,6 +5,7 @@ import br.com.imoveis.domain.imovel.Imovel;
 import br.com.imoveis.domain.imovel.TipoImovel;
 import jakarta.inject.Singleton;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Singleton
@@ -22,9 +23,11 @@ public class CadastrarImovel {
     }
 
     public Imovel execute(UUID proprietarioId, String endereco, String cidade, String matricula,
-                          String numero, String bairro, String complemento, TipoImovel tipoImovel) {
+                          String numero, String bairro, String complemento, TipoImovel tipoImovel,
+                          Integer quartos, Integer banheiros, Integer vagas, BigDecimal areaM2,
+                          BigDecimal iptu, String cep) {
         Imovel imovel = Imovel.cadastrar(proprietarioId, endereco, cidade, matricula,
-            numero, bairro, complemento, tipoImovel);
+            numero, bairro, complemento, tipoImovel, quartos, banheiros, vagas, areaM2, iptu, cep);
         return repository.save(imovel);
     }
 }

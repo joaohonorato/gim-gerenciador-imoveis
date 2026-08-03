@@ -12,6 +12,8 @@ export default function PerfilProprietarioScreen() {
   const [me, setMe] = useState<MeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
+  const [reenviandoEmail, setReenviandoEmail] = useState(false);
+  const [emailReenviado, setEmailReenviado] = useState(false);
   const [error, setError] = useState('');
 
   const carregar = useCallback(async () => {
@@ -41,6 +43,19 @@ export default function PerfilProprietarioScreen() {
     }
   }
 
+  async function reenviarVerificacao() {
+    setReenviandoEmail(true);
+    setError('');
+    try {
+      await apiFetch('/auth/email/reenviar', { method: 'POST' });
+      setEmailReenviado(true);
+    } catch (e: any) {
+      setError(e.message ?? 'Não foi possível reenviar o e-mail de verificação');
+    } finally {
+      setReenviandoEmail(false);
+    }
+  }
+
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-surface gap-3">
@@ -67,6 +82,22 @@ export default function PerfilProprietarioScreen() {
       <Card className="gap-3">
         <DetailRow label="Nome" value={me?.nome ?? '—'} />
         <DetailRow label="E-mail" value={me?.email ?? '—'} />
+        <View className="flex-row items-center justify-between gap-4">
+          <Text className="text-muted" style={{ fontSize: 14 }}>Status do e-mail</Text>
+          {me?.emailVerificado ? (
+            <Text style={{ color: '#16A34A', fontSize: 13, fontWeight: '700' }}>Verificado ✓</Text>
+          ) : emailReenviado ? (
+            <Text style={{ color: '#6B7280', fontSize: 13, fontWeight: '600' }}>E-mail reenviado</Text>
+          ) : (
+            <Text
+              testID="link-reenviar-verificacao"
+              onPress={reenviandoEmail ? undefined : reenviarVerificacao}
+              style={{ color: '#D97706', fontSize: 13, fontWeight: '700' }}
+            >
+              {reenviandoEmail ? 'Enviando...' : 'Não verificado — reenviar'}
+            </Text>
+          )}
+        </View>
       </Card>
     </ScrollView>
   );

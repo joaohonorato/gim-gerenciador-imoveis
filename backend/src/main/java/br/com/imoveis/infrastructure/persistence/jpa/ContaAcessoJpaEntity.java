@@ -32,6 +32,9 @@ public class ContaAcessoJpaEntity {
     @Column(name = "criado_em", nullable = false)
     private Instant criadoEm;
 
+    @Column(name = "email_verificado", nullable = false)
+    private boolean emailVerificado;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -52,4 +55,7 @@ public class ContaAcessoJpaEntity {
 
     public Instant getCriadoEm() { return criadoEm; }
     public void setCriadoEm(Instant criadoEm) { this.criadoEm = criadoEm; }
+
+    public boolean isEmailVerificado() { return emailVerificado; }
+    public void setEmailVerificado(boolean emailVerificado) { this.emailVerificado = emailVerificado; }
 }

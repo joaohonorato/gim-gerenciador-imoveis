@@ -78,7 +78,8 @@ public class ImoveisController {
     public ImovelResponse criar(@Body NovoImovelRequest body, HttpRequest<?> req) {
         Principal p = CurrentPrincipal.require(req);
         Imovel i = cadastrarImovel.execute(p.proprietarioId(), body.endereco(), body.cidade(), body.matricula(),
-            body.numero(), body.bairro(), body.complemento(), body.tipoImovel());
+            body.numero(), body.bairro(), body.complemento(), body.tipoImovel(),
+            body.quartos(), body.banheiros(), body.vagas(), body.areaM2(), body.iptu(), body.cep());
         return toResponse(i);
     }
 

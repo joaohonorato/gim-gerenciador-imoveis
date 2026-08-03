@@ -4,6 +4,7 @@ import br.com.imoveis.domain.imovel.TipoImovel;
 import br.com.imoveis.domain.imovel.Visibilidade;
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
@@ -42,6 +43,24 @@ public class ImovelJpaEntity {
     @Column(nullable = false)
     private Visibilidade visibilidade;
 
+    @Column
+    private Integer quartos;
+
+    @Column
+    private Integer banheiros;
+
+    @Column
+    private Integer vagas;
+
+    @Column(name = "area_m2")
+    private BigDecimal areaM2;
+
+    @Column
+    private BigDecimal iptu;
+
+    @Column
+    private String cep;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -71,4 +90,22 @@ public class ImovelJpaEntity {
 
     public Visibilidade getVisibilidade() { return visibilidade; }
     public void setVisibilidade(Visibilidade visibilidade) { this.visibilidade = visibilidade; }
+
+    public Integer getQuartos() { return quartos; }
+    public void setQuartos(Integer quartos) { this.quartos = quartos; }
+
+    public Integer getBanheiros() { return banheiros; }
+    public void setBanheiros(Integer banheiros) { this.banheiros = banheiros; }
+
+    public Integer getVagas() { return vagas; }
+    public void setVagas(Integer vagas) { this.vagas = vagas; }
+
+    public BigDecimal getAreaM2() { return areaM2; }
+    public void setAreaM2(BigDecimal areaM2) { this.areaM2 = areaM2; }
+
+    public BigDecimal getIptu() { return iptu; }
+    public void setIptu(BigDecimal iptu) { this.iptu = iptu; }
+
+    public String getCep() { return cep; }
+    public void setCep(String cep) { this.cep = cep; }
 }

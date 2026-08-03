@@ -41,7 +41,26 @@ public final class AuthDtos {
 
     @Serdeable
     public record LoginResponse(String sessionToken, UUID proprietarioId, String nome, String email,
-                                TipoContaAcesso tipoConta) {}
+                                TipoContaAcesso tipoConta, boolean emailVerificado) {}
+
+    @Serdeable
+    public record EsqueciSenhaRequest(
+        @NotBlank(message = "email obrigatório")
+        @Email(message = "email inválido")
+        String email) {}
+
+    @Serdeable
+    public record RedefinirSenhaRequest(
+        @NotBlank(message = "token obrigatório")
+        String token,
+        @NotBlank(message = "senha obrigatória")
+        @Size(min = 8, max = 72, message = "senha deve ter entre 8 e 72 caracteres")
+        String novaSenha) {}
+
+    @Serdeable
+    public record ConfirmarEmailRequest(
+        @NotBlank(message = "token obrigatório")
+        String token) {}
 
     @Serdeable
     public record NovoConviteProprietarioRequest(
@@ -73,5 +92,6 @@ public final class AuthDtos {
         String senha) {}
 
     @Serdeable
-    public record MeResponse(UUID id, String nome, String email, TipoContaAcesso tipoConta, String avatarUrl) {}
+    public record MeResponse(UUID id, String nome, String email, TipoContaAcesso tipoConta, String avatarUrl,
+                             boolean emailVerificado) {}
 }

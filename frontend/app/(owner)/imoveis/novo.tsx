@@ -1,13 +1,22 @@
 import { useState } from 'react';
-import { View, Text, TextInput, ScrollView } from 'react-native';
+import { View, Text, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { apiFetch } from '@/api/client';
-import { Imovel } from '@/api/types';
+import { Imovel, NovoImovelRequest } from '@/api/types';
 import { Card } from '@/design/Card';
 import { Button } from '@/design/Button';
 import { Pill } from '@/design/Pill';
 
+interface ViaCepResponse {
+  erro?: boolean;
+  logradouro?: string;
+  bairro?: string;
+  localidade?: string;
+}
+
 export default function NovoImovelScreen() {
+  const [cep, setCep] = useState('');
+  const [buscandoCep, setBuscandoCep] = useState(false);
   const [endereco, setEndereco] = useState('');
   const [numero, setNumero] = useState('');
   const [bairro, setBairro] = useState('');
@@ -15,24 +24,62 @@ export default function NovoImovelScreen() {
   const [cidade, setCidade] = useState('');
   const [matricula, setMatricula] = useState('');
   const [tipoImovel, setTipoImovel] = useState<'CASA' | 'APARTAMENTO' | 'COMERCIAL' | 'OUTRO'>('CASA');
+  const [quartos, setQuartos] = useState('');
+  const [banheiros, setBanheiros] = useState('');
+  const [vagas, setVagas] = useState('');
+  const [areaM2, setAreaM2] = useState('');
+  const [iptu, setIptu] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  async function onChangeCep(valor: string) {
+    setCep(valor);
+    const digitos = valor.replace(/\D/g, '');
+    if (digitos.length !== 8) return;
+
+    setBuscandoCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digitos}/json/`);
+      const data: ViaCepResponse = await res.json();
+      if (!data.erro) {
+        if (data.logradouro) setEndereco(data.logradouro);
+        if (data.bairro) setBairro(data.bairro);
+        if (data.localidade) setCidade(data.localidade);
+      }
+    } catch {
+      // CEP autofill é conveniência, não crítico — falha silenciosa, usuário preenche na mão.
+    } finally {
+      setBuscandoCep(false);
+    }
+  }
+
+  function numeroOuIndefinido(valor: string): number | undefined {
+    const n = Number(valor.replace(',', '.'));
+    return valor.trim() === '' || Number.isNaN(n) ? undefined : n;
+  }
 
   async function salvar() {
     setLoading(true);
     setError('');
     try {
+      const body: NovoImovelRequest = {
+        endereco,
+        cidade,
+        matricula,
+        numero: numero.trim() || undefined,
+        bairro: bairro.trim() || undefined,
+        complemento: complemento.trim() || undefined,
+        tipoImovel,
+        cep: cep.replace(/\D/g, '') || undefined,
+        quartos: numeroOuIndefinido(quartos),
+        banheiros: numeroOuIndefinido(banheiros),
+        vagas: numeroOuIndefinido(vagas),
+        areaM2: numeroOuIndefinido(areaM2),
+        iptu: numeroOuIndefinido(iptu),
+      };
       await apiFetch<Imovel>('/imoveis', {
         method: 'POST',
-        body: JSON.stringify({
-          endereco,
-          cidade,
-          matricula,
-          numero: numero.trim() || null,
-          bairro: bairro.trim() || null,
-          complemento: complemento.trim() || null,
-          tipoImovel,
-        }),
+        body: JSON.stringify(body),
       });
       router.replace('/imoveis');
     } catch (e: any) {
@@ -50,6 +97,22 @@ export default function NovoImovelScreen() {
       </View>
 
       <Card className="p-8 gap-4">
+        <Field label="CEP">
+          <View className="flex-row items-center gap-3">
+            <TextInput
+              testID="input-cep"
+              placeholder="00000-000"
+              placeholderTextColor="#9CA3AF"
+              value={cep}
+              onChangeText={onChangeCep}
+              keyboardType="numeric"
+              maxLength={9}
+              className="bg-card px-4 py-3 text-primary rounded-xl"
+              style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14, flex: 1 }}
+            />
+            {buscandoCep ? <ActivityIndicator color="#2563EB" /> : null}
+          </View>
+        </Field>
         <Field label="Endereço">
           <TextInput
             testID="input-endereco"
@@ -126,6 +189,82 @@ export default function NovoImovelScreen() {
             ))}
           </View>
         </Field>
+
+        <View className="flex-row gap-4">
+          <View style={{ flex: 1 }}>
+            <Field label="Quartos">
+              <TextInput
+                testID="input-quartos"
+                placeholder="0"
+                placeholderTextColor="#9CA3AF"
+                value={quartos}
+                onChangeText={setQuartos}
+                keyboardType="numeric"
+                className="bg-card px-4 py-3 text-primary rounded-xl"
+                style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
+              />
+            </Field>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Field label="Banheiros">
+              <TextInput
+                testID="input-banheiros"
+                placeholder="0"
+                placeholderTextColor="#9CA3AF"
+                value={banheiros}
+                onChangeText={setBanheiros}
+                keyboardType="numeric"
+                className="bg-card px-4 py-3 text-primary rounded-xl"
+                style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
+              />
+            </Field>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Field label="Vagas">
+              <TextInput
+                testID="input-vagas"
+                placeholder="0"
+                placeholderTextColor="#9CA3AF"
+                value={vagas}
+                onChangeText={setVagas}
+                keyboardType="numeric"
+                className="bg-card px-4 py-3 text-primary rounded-xl"
+                style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
+              />
+            </Field>
+          </View>
+        </View>
+
+        <View className="flex-row gap-4">
+          <View style={{ flex: 1 }}>
+            <Field label="Área (m²)">
+              <TextInput
+                testID="input-area"
+                placeholder="Ex: 75"
+                placeholderTextColor="#9CA3AF"
+                value={areaM2}
+                onChangeText={setAreaM2}
+                keyboardType="numeric"
+                className="bg-card px-4 py-3 text-primary rounded-xl"
+                style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
+              />
+            </Field>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Field label="IPTU (R$/ano)">
+              <TextInput
+                testID="input-iptu"
+                placeholder="Ex: 1200"
+                placeholderTextColor="#9CA3AF"
+                value={iptu}
+                onChangeText={setIptu}
+                keyboardType="numeric"
+                className="bg-card px-4 py-3 text-primary rounded-xl"
+                style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
+              />
+            </Field>
+          </View>
+        </View>
 
         {error ? <Text style={{ color: '#DC2626', fontSize: 13 }}>{error}</Text> : null}
 

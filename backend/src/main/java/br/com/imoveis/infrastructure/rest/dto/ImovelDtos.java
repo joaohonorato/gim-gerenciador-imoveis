@@ -7,6 +7,7 @@ import br.com.imoveis.domain.imovel.UnidadeStatus;
 import br.com.imoveis.domain.imovel.Visibilidade;
 import io.micronaut.serde.annotation.Serdeable;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,7 +17,9 @@ public final class ImovelDtos {
     @Serdeable
     public record NovoImovelRequest(String endereco, String cidade, String matricula,
                                     String numero, String bairro, String complemento,
-                                    TipoImovel tipoImovel) {}
+                                    TipoImovel tipoImovel,
+                                    Integer quartos, Integer banheiros, Integer vagas,
+                                    BigDecimal areaM2, BigDecimal iptu, String cep) {}
 
     @Serdeable
     public record FiltroImoveisRequest(String busca, String cidade,
@@ -31,13 +34,16 @@ public final class ImovelDtos {
                                   String complemento, TipoImovel tipoImovel,
                                   String enderecoCompleto,
                                   Visibilidade visibilidade, List<UnidadeResumo> unidades,
-                                  List<FotoResponse> fotos) {
+                                  List<FotoResponse> fotos,
+                                  Integer quartos, Integer banheiros, Integer vagas,
+                                  BigDecimal areaM2, BigDecimal iptu, String cep) {
         public static ImovelResponse from(Imovel i, List<FotoResponse> fotos) {
             return new ImovelResponse(i.id(), i.proprietarioId(), i.endereco(), i.cidade(),
                 i.matricula(), i.numero(), i.bairro(), i.complemento(), i.tipoImovel(),
                 i.enderecoCompleto(), i.visibilidade(),
                 i.unidades().stream().map(UnidadeResumo::from).toList(),
-                fotos);
+                fotos,
+                i.quartos(), i.banheiros(), i.vagas(), i.areaM2(), i.iptu(), i.cep());
         }
     }
 

@@ -10,14 +10,15 @@ public class ContaAcesso {
 
     private final UUID id;
     private final Email email;
-    private final String senhaHash;
+    private String senhaHash;
     private final TipoContaAcesso tipo;
     private final UUID proprietarioId;
     private final UUID inquilinoId;
     private final Instant criadoEm;
+    private boolean emailVerificado;
 
     private ContaAcesso(UUID id, Email email, String senhaHash, TipoContaAcesso tipo,
-                        UUID proprietarioId, UUID inquilinoId, Instant criadoEm) {
+                        UUID proprietarioId, UUID inquilinoId, Instant criadoEm, boolean emailVerificado) {
         this.id = id;
         this.email = Objects.requireNonNull(email, "email obrigatório");
         this.senhaHash = validaSenhaHash(senhaHash);
@@ -25,23 +26,36 @@ public class ContaAcesso {
         this.proprietarioId = proprietarioId;
         this.inquilinoId = inquilinoId;
         this.criadoEm = Objects.requireNonNull(criadoEm, "criadoEm obrigatório");
+        this.emailVerificado = emailVerificado;
     }
 
     public static ContaAcesso vincularProprietario(Email email, String senhaHash, UUID proprietarioId, Instant agora) {
         Objects.requireNonNull(proprietarioId, "proprietarioId obrigatório");
         return new ContaAcesso(UUID.randomUUID(), email, senhaHash, TipoContaAcesso.PROPRIETARIO,
-            proprietarioId, null, agora);
+            proprietarioId, null, agora, false);
     }
 
     public static ContaAcesso vincularInquilino(Email email, String senhaHash, UUID inquilinoId, Instant agora) {
         Objects.requireNonNull(inquilinoId, "inquilinoId obrigatório");
         return new ContaAcesso(UUID.randomUUID(), email, senhaHash, TipoContaAcesso.INQUILINO,
-            null, inquilinoId, agora);
+            null, inquilinoId, agora, false);
     }
 
     public static ContaAcesso reconstituir(UUID id, Email email, String senhaHash, TipoContaAcesso tipo,
-                                           UUID proprietarioId, UUID inquilinoId, Instant criadoEm) {
-        return new ContaAcesso(id, email, senhaHash, tipo, proprietarioId, inquilinoId, criadoEm);
+                                           UUID proprietarioId, UUID inquilinoId, Instant criadoEm,
+                                           boolean emailVerificado) {
+        return new ContaAcesso(id, email, senhaHash, tipo, proprietarioId, inquilinoId, criadoEm, emailVerificado);
+    }
+
+    public void redefinirSenha(String novoHash) {
+        this.senhaHash = validaSenhaHash(novoHash);
+    }
+
+    public void verificarEmail() {
+        if (emailVerificado) {
+            throw new IllegalStateException("e-mail já verificado");
+        }
+        emailVerificado = true;
     }
 
     private static String validaSenhaHash(String senhaHash) {
@@ -59,4 +73,5 @@ public class ContaAcesso {
     public UUID proprietarioId() { return proprietarioId; }
     public UUID inquilinoId() { return inquilinoId; }
     public Instant criadoEm() { return criadoEm; }
+    public boolean emailVerificado() { return emailVerificado; }
 }

@@ -98,6 +98,13 @@ export default function LoginScreen() {
                 />
                 {error ? <Text style={{ color: '#DC2626', fontSize: 13 }}>{error}</Text> : null}
                 <Button testID="btn-login" label="Entrar" onPress={login} loading={loading} />
+                <Text
+                  testID="link-esqueci-senha"
+                  onPress={() => router.push('/esqueci-senha')}
+                  style={{ color: '#2563EB', fontSize: 13, fontWeight: '600', textAlign: 'center' }}
+                >
+                  Esqueci minha senha
+                </Text>
                 <Button label="Sou proprietário, criar conta" onPress={() => router.push('/register')} variant="outline" />
                 <Button label="Tenho convite de inquilino" onPress={() => router.push('/convite/manual')} variant="outline" />
               </View>

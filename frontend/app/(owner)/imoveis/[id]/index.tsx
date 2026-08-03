@@ -207,6 +207,12 @@ export default function ImovelDetalheScreen() {
         <DetailRow label="Matrícula" value={imovel.matricula} />
         <DetailRow label="Tipo" value={formatTipo(imovel.tipoImovel ?? undefined)} />
         <DetailRow label="Bairro" value={imovel.bairro ?? 'Não informado'} />
+        <DetailRow label="CEP" value={imovel.cep ?? 'Não informado'} />
+        <DetailRow label="Quartos" value={imovel.quartos != null ? String(imovel.quartos) : 'Não informado'} />
+        <DetailRow label="Banheiros" value={imovel.banheiros != null ? String(imovel.banheiros) : 'Não informado'} />
+        <DetailRow label="Vagas" value={imovel.vagas != null ? String(imovel.vagas) : 'Não informado'} />
+        <DetailRow label="Área" value={imovel.areaM2 != null ? `${imovel.areaM2} m²` : 'Não informado'} />
+        <DetailRow label="IPTU" value={imovel.iptu != null ? formatCurrency(imovel.iptu) : 'Não informado'} />
         <DetailRow label="Visibilidade" value={imovel.visibilidade === 'PUBLICADO' ? 'Público' : 'Privado'} />
         <Button
           label="Enviar novo convite"

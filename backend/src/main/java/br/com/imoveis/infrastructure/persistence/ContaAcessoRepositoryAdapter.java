@@ -33,6 +33,7 @@ public class ContaAcessoRepositoryAdapter implements ContaAcessoRepository {
         entity.setProprietarioId(contaAcesso.proprietarioId());
         entity.setInquilinoId(contaAcesso.inquilinoId());
         entity.setCriadoEm(contaAcesso.criadoEm());
+        entity.setEmailVerificado(contaAcesso.emailVerificado());
         em.merge(entity);
         return contaAcesso;
     }
@@ -40,6 +41,11 @@ public class ContaAcessoRepositoryAdapter implements ContaAcessoRepository {
     @Override
     public Optional<ContaAcesso> findByEmail(Email email) {
         return jpa.findByEmail(email.value()).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<ContaAcesso> findById(java.util.UUID id) {
+        return jpa.findById(id).map(this::toDomain);
     }
 
     private ContaAcesso toDomain(ContaAcessoJpaEntity entity) {
@@ -50,6 +56,7 @@ public class ContaAcessoRepositoryAdapter implements ContaAcessoRepository {
             entity.getTipo(),
             entity.getProprietarioId(),
             entity.getInquilinoId(),
-            entity.getCriadoEm());
+            entity.getCriadoEm(),
+            entity.isEmailVerificado());
     }
 }

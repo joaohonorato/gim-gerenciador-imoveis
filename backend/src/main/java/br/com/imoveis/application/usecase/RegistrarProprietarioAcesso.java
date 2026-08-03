@@ -6,7 +6,10 @@ import br.com.imoveis.application.ports.ContaAcessoRepository;
 import br.com.imoveis.application.ports.PasswordHasher;
 import br.com.imoveis.application.ports.ProprietarioRepository;
 import br.com.imoveis.application.ports.SessaoRepository;
+import br.com.imoveis.application.ports.TokenContaEmailSender;
+import br.com.imoveis.application.ports.TokenContaRepository;
 import br.com.imoveis.domain.auth.ContaAcesso;
+import br.com.imoveis.domain.auth.TokenConta;
 import br.com.imoveis.domain.proprietario.Proprietario;
 import br.com.imoveis.domain.shared.CpfCnpj;
 import br.com.imoveis.domain.shared.Email;
@@ -27,17 +30,23 @@ public class RegistrarProprietarioAcesso {
     private final ContaAcessoRepository contaAcessoRepository;
     private final PasswordHasher passwordHasher;
     private final SessaoRepository sessaoRepository;
+    private final TokenContaRepository tokenContaRepository;
+    private final TokenContaEmailSender tokenContaEmailSender;
     private final Clock clock;
 
     public RegistrarProprietarioAcesso(ProprietarioRepository proprietarioRepository,
                                        ContaAcessoRepository contaAcessoRepository,
                                        PasswordHasher passwordHasher,
                                        SessaoRepository sessaoRepository,
+                                       TokenContaRepository tokenContaRepository,
+                                       TokenContaEmailSender tokenContaEmailSender,
                                        Clock clock) {
         this.proprietarioRepository = proprietarioRepository;
         this.contaAcessoRepository = contaAcessoRepository;
         this.passwordHasher = passwordHasher;
         this.sessaoRepository = sessaoRepository;
+        this.tokenContaRepository = tokenContaRepository;
+        this.tokenContaEmailSender = tokenContaEmailSender;
         this.clock = clock;
     }
 
@@ -61,6 +70,11 @@ public class RegistrarProprietarioAcesso {
         sessaoRepository.save(new SessaoRepository.Sessao(
             sessionToken, contaAcesso.id(), contaAcesso.tipo(), contaAcesso.proprietarioId(),
             contaAcesso.inquilinoId(), clock.now().plus(24, ChronoUnit.HOURS)));
+
+        // Não bloqueia nem falha o registro se o envio falhar — mesmo
+        // comportamento gracioso do TokenContaEmailSender (log e segue).
+        TokenConta tokenVerificacao = tokenContaRepository.save(TokenConta.paraVerificacaoEmail(ownerEmail, clock.now()));
+        tokenContaEmailSender.enviarVerificacaoEmail(ownerEmail.value(), tokenVerificacao.token());
 
         return new Result(sessionToken, proprietario, contaAcesso);
     }

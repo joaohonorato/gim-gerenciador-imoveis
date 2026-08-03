@@ -49,6 +49,12 @@ public class ImovelRepositoryAdapter implements ImovelRepository {
         e.setComplemento(imovel.complemento());
         e.setTipoImovel(imovel.tipoImovel());
         e.setVisibilidade(imovel.visibilidade());
+        e.setQuartos(imovel.quartos());
+        e.setBanheiros(imovel.banheiros());
+        e.setVagas(imovel.vagas());
+        e.setAreaM2(imovel.areaM2());
+        e.setIptu(imovel.iptu());
+        e.setCep(imovel.cep());
         em.merge(e);
         for (Unidade u : imovel.unidades()) {
             saveUnidade(u);
@@ -117,13 +123,15 @@ public class ImovelRepositoryAdapter implements ImovelRepository {
         List<Unidade> unidades = unidadeJpa.findByImovelId(e.getId()).stream().map(this::toDomainUnidade).toList();
         return Imovel.reconstituir(e.getId(), e.getProprietarioId(), e.getEndereco(), e.getCidade(),
             e.getMatricula(), e.getNumero(), e.getBairro(), e.getComplemento(), e.getTipoImovel(),
-            e.getVisibilidade(), unidades);
+            e.getVisibilidade(), unidades,
+            e.getQuartos(), e.getBanheiros(), e.getVagas(), e.getAreaM2(), e.getIptu(), e.getCep());
     }
 
     private Imovel toDomainWith(ImovelJpaEntity e, List<UnidadeJpaEntity> unidades) {
         return Imovel.reconstituir(e.getId(), e.getProprietarioId(), e.getEndereco(), e.getCidade(),
             e.getMatricula(), e.getNumero(), e.getBairro(), e.getComplemento(), e.getTipoImovel(),
-            e.getVisibilidade(), unidades.stream().map(this::toDomainUnidade).toList());
+            e.getVisibilidade(), unidades.stream().map(this::toDomainUnidade).toList(),
+            e.getQuartos(), e.getBanheiros(), e.getVagas(), e.getAreaM2(), e.getIptu(), e.getCep());
     }
 
     private Unidade toDomainUnidade(UnidadeJpaEntity ue) {

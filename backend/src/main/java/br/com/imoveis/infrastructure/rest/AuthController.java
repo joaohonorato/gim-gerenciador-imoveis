@@ -3,15 +3,20 @@ package br.com.imoveis.infrastructure.rest;
 import br.com.imoveis.application.exception.AutenticacaoInvalidaException;
 import br.com.imoveis.application.ports.ArquivoRepository;
 import br.com.imoveis.application.ports.ArquivoStorage;
+import br.com.imoveis.application.ports.ContaAcessoRepository;
 import br.com.imoveis.application.ports.ConviteAcessoRepository;
 import br.com.imoveis.application.ports.InquilinoRepository;
 import br.com.imoveis.application.ports.ProprietarioRepository;
 import br.com.imoveis.application.usecase.AceitarConviteAcesso;
 import br.com.imoveis.application.usecase.AtualizarAvatar;
 import br.com.imoveis.application.usecase.AutenticarConta;
+import br.com.imoveis.application.usecase.ConfirmarVerificacaoEmail;
 import br.com.imoveis.application.usecase.CriarConviteAcessoProprietario;
 import br.com.imoveis.application.usecase.EncerrarSessao;
+import br.com.imoveis.application.usecase.RedefinirSenha;
+import br.com.imoveis.application.usecase.ReenviarVerificacaoEmail;
 import br.com.imoveis.application.usecase.RegistrarProprietarioAcesso;
+import br.com.imoveis.application.usecase.SolicitarRedefinicaoSenha;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import br.com.imoveis.domain.arquivo.Arquivo;
 import br.com.imoveis.domain.arquivo.TipoArquivo;
@@ -46,9 +51,14 @@ public class AuthController {
     private final AceitarConviteAcesso aceitarConviteAcesso;
     private final EncerrarSessao encerrarSessao;
     private final AtualizarAvatar atualizarAvatar;
+    private final SolicitarRedefinicaoSenha solicitarRedefinicaoSenha;
+    private final RedefinirSenha redefinirSenha;
+    private final ConfirmarVerificacaoEmail confirmarVerificacaoEmail;
+    private final ReenviarVerificacaoEmail reenviarVerificacaoEmail;
     private final ConviteAcessoRepository conviteAcessoRepository;
     private final ProprietarioRepository proprietarioRepository;
     private final InquilinoRepository inquilinoRepository;
+    private final ContaAcessoRepository contaAcessoRepository;
     private final ArquivoRepository arquivoRepository;
     private final ArquivoStorage arquivoStorage;
 
@@ -58,9 +68,14 @@ public class AuthController {
                           AceitarConviteAcesso aceitarConviteAcesso,
                           EncerrarSessao encerrarSessao,
                           AtualizarAvatar atualizarAvatar,
+                          SolicitarRedefinicaoSenha solicitarRedefinicaoSenha,
+                          RedefinirSenha redefinirSenha,
+                          ConfirmarVerificacaoEmail confirmarVerificacaoEmail,
+                          ReenviarVerificacaoEmail reenviarVerificacaoEmail,
                           ConviteAcessoRepository conviteAcessoRepository,
                           ProprietarioRepository proprietarioRepository,
                           InquilinoRepository inquilinoRepository,
+                          ContaAcessoRepository contaAcessoRepository,
                           ArquivoRepository arquivoRepository,
                           ArquivoStorage arquivoStorage) {
         this.autenticarConta = autenticarConta;
@@ -69,9 +84,14 @@ public class AuthController {
         this.aceitarConviteAcesso = aceitarConviteAcesso;
         this.encerrarSessao = encerrarSessao;
         this.atualizarAvatar = atualizarAvatar;
+        this.solicitarRedefinicaoSenha = solicitarRedefinicaoSenha;
+        this.redefinirSenha = redefinirSenha;
+        this.confirmarVerificacaoEmail = confirmarVerificacaoEmail;
+        this.reenviarVerificacaoEmail = reenviarVerificacaoEmail;
         this.conviteAcessoRepository = conviteAcessoRepository;
         this.proprietarioRepository = proprietarioRepository;
         this.inquilinoRepository = inquilinoRepository;
+        this.contaAcessoRepository = contaAcessoRepository;
         this.arquivoRepository = arquivoRepository;
         this.arquivoStorage = arquivoStorage;
     }
@@ -84,7 +104,8 @@ public class AuthController {
             result.proprietario().id(),
             result.proprietario().nome(),
             result.proprietario().email().value(),
-            result.contaAcesso().tipo());
+            result.contaAcesso().tipo(),
+            result.contaAcesso().emailVerificado());
     }
 
     @Post(value = "/login", consumes = MediaType.APPLICATION_JSON, produces = MediaType.APPLICATION_JSON)
@@ -96,7 +117,33 @@ public class AuthController {
             proprietario == null ? null : proprietario.id(),
             proprietario == null ? null : proprietario.nome(),
             result.contaAcesso().email().value(),
-            result.contaAcesso().tipo());
+            result.contaAcesso().tipo(),
+            result.contaAcesso().emailVerificado());
+    }
+
+    @Post(value = "/senha/esqueci", consumes = MediaType.APPLICATION_JSON)
+    @Status(HttpStatus.NO_CONTENT)
+    public void esqueciSenha(@Body @Valid EsqueciSenhaRequest req) {
+        solicitarRedefinicaoSenha.execute(req.email());
+    }
+
+    @Post(value = "/senha/redefinir", consumes = MediaType.APPLICATION_JSON)
+    @Status(HttpStatus.NO_CONTENT)
+    public void redefinirSenha(@Body @Valid RedefinirSenhaRequest req) {
+        redefinirSenha.execute(req.token(), req.novaSenha());
+    }
+
+    @Post(value = "/email/confirmar", consumes = MediaType.APPLICATION_JSON)
+    @Status(HttpStatus.NO_CONTENT)
+    public void confirmarEmail(@Body @Valid ConfirmarEmailRequest req) {
+        confirmarVerificacaoEmail.execute(req.token());
+    }
+
+    @Post(value = "/email/reenviar")
+    @Status(HttpStatus.NO_CONTENT)
+    public void reenviarEmail(HttpRequest<?> request) {
+        Principal principal = CurrentPrincipal.require(request);
+        reenviarVerificacaoEmail.execute(principal.contaAcessoId());
     }
 
     @Post(value = "/convites/proprietarios", consumes = MediaType.APPLICATION_JSON, produces = MediaType.APPLICATION_JSON)
@@ -120,7 +167,8 @@ public class AuthController {
             result.proprietario().id(),
             result.proprietario().nome(),
             result.proprietario().email().value(),
-            br.com.imoveis.domain.auth.TipoContaAcesso.PROPRIETARIO);
+            br.com.imoveis.domain.auth.TipoContaAcesso.PROPRIETARIO,
+            false);
     }
 
     @Get(value = "/me", produces = MediaType.APPLICATION_JSON)
@@ -144,20 +192,24 @@ public class AuthController {
     }
 
     private MeResponse buildMeResponse(Principal principal) {
+        boolean emailVerificado = contaAcessoRepository.findById(principal.contaAcessoId())
+            .map(br.com.imoveis.domain.auth.ContaAcesso::emailVerificado)
+            .orElse(false);
+
         if (principal.inquilinoId() != null) {
             Inquilino inquilino = inquilinoRepository.findById(principal.inquilinoId())
                 .orElseThrow(() -> new AutenticacaoInvalidaException("usuário autenticado não encontrado"));
             String avatarUrl = avatarUrl(TipoArquivo.AVATAR_INQUILINO, inquilino.id());
-            return new MeResponse(inquilino.id(), inquilino.nome(), inquilino.email().value(), principal.tipoConta(), avatarUrl);
+            return new MeResponse(inquilino.id(), inquilino.nome(), inquilino.email().value(), principal.tipoConta(), avatarUrl, emailVerificado);
         }
 
         Proprietario proprietario = principal.proprietarioId() == null ? null : proprietarioRepository.findById(principal.proprietarioId())
             .orElseThrow(() -> new AutenticacaoInvalidaException("usuário autenticado não encontrado"));
         if (proprietario == null) {
-            return new MeResponse(null, null, null, principal.tipoConta(), null);
+            return new MeResponse(null, null, null, principal.tipoConta(), null, emailVerificado);
         }
         String avatarUrl = avatarUrl(TipoArquivo.AVATAR_PROPRIETARIO, proprietario.id());
-        return new MeResponse(proprietario.id(), proprietario.nome(), proprietario.email().value(), principal.tipoConta(), avatarUrl);
+        return new MeResponse(proprietario.id(), proprietario.nome(), proprietario.email().value(), principal.tipoConta(), avatarUrl, emailVerificado);
     }
 
     private String avatarUrl(TipoArquivo tipo, UUID donoId) {

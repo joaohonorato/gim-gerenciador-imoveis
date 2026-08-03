@@ -16,6 +16,28 @@ export interface Imovel {
     status: 'VAGO' | 'RESERVADO' | 'ALUGADO' | 'MANUTENCAO';
   }>;
   fotos?: Array<{ id: string; url: string }>;
+  quartos?: number | null;
+  banheiros?: number | null;
+  vagas?: number | null;
+  areaM2?: number | null;
+  iptu?: number | null;
+  cep?: string | null;
+}
+
+export interface NovoImovelRequest {
+  endereco: string;
+  cidade: string;
+  matricula: string;
+  numero?: string;
+  bairro?: string;
+  complemento?: string;
+  tipoImovel?: string;
+  quartos?: number;
+  banheiros?: number;
+  vagas?: number;
+  areaM2?: number;
+  iptu?: number;
+  cep?: string;
 }
 
 export interface Convite {
@@ -89,6 +111,7 @@ export interface MeResponse {
   email: string | null;
   tipoConta: TipoConta;
   avatarUrl: string | null;
+  emailVerificado: boolean;
 }
 
 export interface Inquilino {
