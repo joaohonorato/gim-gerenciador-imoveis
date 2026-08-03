@@ -26,25 +26,38 @@ jobs:
       # GHCR instead of Azure Container Registry — ACR has no free tier,
       # GHCR is free for this repo.
       #
-      # NOT using GITHUB_TOKEN here: this action stores the registry
-      # password as the Container App's *runtime* pull credential too, not
-      # just for this job's push. GITHUB_TOKEN is job-scoped and expires
-      # shortly after the run finishes, so it works for the initial deploy
-      # but silently breaks the next cold start / scale-from-zero / restart
-      # (found by actually hitting that in production — Container Apps
-      # reported 0 replicas, no useful error, just "Could not find a
-      # replica for this app"). GHCR_PAT is a durable classic PAT with
-      # write:packages scope (implies read) — see docs/deploy-azure.md.
-      - name: Build and deploy to Azure Container Apps
-        uses: azure/container-apps-deploy-action@v2
+      # NOT using GITHUB_TOKEN here: the registry password also becomes the
+      # Container App's *runtime* pull credential (already configured there
+      # as a managed secret), not just this job's push. GITHUB_TOKEN is
+      # job-scoped and expires shortly after the run finishes, so it works
+      # for the initial deploy but silently breaks the next cold start /
+      # scale-from-zero / restart (found by actually hitting that in
+      # production — Container Apps reported 0 replicas, no useful error,
+      # just "Could not find a replica for this app"). GHCR_PAT is a
+      # durable classic PAT with write:packages scope (implies read) — see
+      # docs/deploy-azure.md.
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          appSourcePath: ${{ github.workspace }}/backend
-          dockerfilePath: Dockerfile
-          registryUrl: ghcr.io
-          registryUsername: ${{ github.actor }}
-          registryPassword: ${{ secrets.GHCR_PAT }}
-          imageToBuild: ghcr.io/${{ github.repository }}/backend:${{ github.sha }}
-          containerAppName: ${{ secrets.AZURE_CONTAINER_APP_NAME }}
-          resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
-          containerAppEnvironment: ${{ secrets.AZURE_CONTAINERAPPS_ENV }}
-          targetPort: 8080
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Build and push image
+        run: |
+          docker build --file backend/Dockerfile --tag "ghcr.io/${{ github.repository }}/backend:${{ github.sha }}" backend
+          docker push "ghcr.io/${{ github.repository }}/backend:${{ github.sha }}"
+
+      # az containerapp up (used by azure/container-apps-deploy-action) hits
+      # a known azure-cli containerapp-extension bug — 'NoneType' object is
+      # not iterable in set_up_existing_container_update — when updating an
+      # already-provisioned app. Deploying with `containerapp update
+      # --image` directly avoids that code path entirely; registry
+      # credentials are already configured on the Container App itself, so
+      # no registry flags are needed here.
+      - name: Deploy new image to Azure Container Apps
+        run: |
+          az containerapp update \
+            --name "${{ secrets.AZURE_CONTAINER_APP_NAME }}" \
+            --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
+            --image "ghcr.io/${{ github.repository }}/backend:${{ github.sha }}"

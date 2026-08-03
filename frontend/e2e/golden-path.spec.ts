@@ -18,15 +18,15 @@ test('golden path — proprietário cadastra imóvel, inquilino assina, pagament
   await page.getByTestId('input-register-password').fill(OWNER_PASSWORD);
   await page.getByTestId('btn-register-owner').click();
 
-  await page.waitForURL(/imoveis/, { timeout: 10_000 });
-  await expect(page).toHaveURL(/imoveis/, { timeout: 10_000 });
+  await page.waitForURL(/\/imoveis$/, { timeout: 10_000 });
+  await expect(page).toHaveURL(/\/imoveis$/, { timeout: 10_000 });
 
   await page.goto('http://localhost:19006/login');
   await page.getByTestId('input-email').fill(OWNER_EMAIL);
   await page.getByTestId('input-password').fill(OWNER_PASSWORD);
   await page.getByTestId('btn-login').click();
 
-  await expect(page).toHaveURL(/imoveis/, { timeout: 10_000 });
+  await expect(page).toHaveURL(/\/imoveis$/, { timeout: 10_000 });
 
   // ownerToken para chamadas diretas à API (sessão separada)
   const ownerToken = await loginViaApi(OWNER_EMAIL, 'E2E Owner', OWNER_CPF);
