@@ -10,11 +10,13 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 
 @Singleton
 public class ResendTokenContaEmailSender implements TokenContaEmailSender {
 
     private static final Logger log = LoggerFactory.getLogger(ResendTokenContaEmailSender.class);
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
     private final HttpClient httpClient;
     private final String resendApiKey;
@@ -26,7 +28,7 @@ public class ResendTokenContaEmailSender implements TokenContaEmailSender {
         @Value("${app.convites.resend.from-email:no-reply@imoveis.local}") String resendFromEmail,
         @Value("${app.convites.frontend-base-url:http://localhost:19006}") String frontendBaseUrl
     ) {
-        this.httpClient = HttpClient.newHttpClient();
+        this.httpClient = HttpClient.newBuilder().connectTimeout(REQUEST_TIMEOUT).build();
         this.resendApiKey = resendApiKey;
         this.resendFromEmail = resendFromEmail;
         this.frontendBaseUrl = frontendBaseUrl;
@@ -48,6 +50,14 @@ public class ResendTokenContaEmailSender implements TokenContaEmailSender {
             "Confirme seu e-mail em: " + link);
     }
 
+    @Override
+    public void enviarConfirmacaoAlteracaoEmail(String emailDestino, String token) {
+        String link = link("verificar-email", token);
+        enviar(emailDestino, "Confirme seu novo e-mail",
+            "<p>Recebemos um pedido para alterar o e-mail da sua conta para este endereço.</p><p><a href=\"" + escapeJson(link) + "\">Confirmar novo e-mail</a></p><p>Se você não pediu isso, ignore este e-mail — sua conta continua com o e-mail atual até a confirmação.</p>",
+            "Confirme seu novo e-mail em: " + link + " — se você não pediu isso, ignore este e-mail.");
+    }
+
     private void enviar(String emailDestino, String subject, String html, String text) {
         if (resendApiKey == null || resendApiKey.isBlank()) {
             log.warn("Resend não configurado; envio de e-mail de conta foi pulado para {}", emailDestino);
@@ -66,6 +76,7 @@ public class ResendTokenContaEmailSender implements TokenContaEmailSender {
             HttpRequest request = HttpRequest.newBuilder(URI.create("https://api.resend.com/emails"))
                 .header("Authorization", "Bearer " + resendApiKey)
                 .header("Content-Type", "application/json")
+                .timeout(REQUEST_TIMEOUT)
                 .POST(HttpRequest.BodyPublishers.ofString(payload))
                 .build();
 

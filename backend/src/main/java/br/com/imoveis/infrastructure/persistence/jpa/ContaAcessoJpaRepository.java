@@ -9,4 +9,7 @@ import java.util.UUID;
 @Repository
 public interface ContaAcessoJpaRepository extends CrudRepository<ContaAcessoJpaEntity, UUID> {
     Optional<ContaAcessoJpaEntity> findByEmail(String email);
+    Optional<ContaAcessoJpaEntity> findByEmailPendente(String emailPendente);
+    Optional<ContaAcessoJpaEntity> findByProprietarioId(UUID proprietarioId);
+    Optional<ContaAcessoJpaEntity> findByInquilinoId(UUID inquilinoId);
 }

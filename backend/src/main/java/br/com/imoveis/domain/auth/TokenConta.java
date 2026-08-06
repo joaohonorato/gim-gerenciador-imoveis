@@ -48,6 +48,14 @@ public class TokenConta {
             agora.plus(24, ChronoUnit.HOURS), agora, false);
     }
 
+    // `email` aqui é o *novo* endereço solicitado (ainda em
+    // ContaAcesso.emailPendente, não em ContaAcesso.email) — é por esse
+    // valor que ConfirmarVerificacaoEmail localiza a conta na confirmação.
+    public static TokenConta paraAlteracaoEmail(Email novoEmail, Instant agora) {
+        return new TokenConta(UUID.randomUUID(), gerarToken(), novoEmail, TokenContaFinalidade.ALTERACAO_EMAIL,
+            agora.plus(24, ChronoUnit.HOURS), agora, false);
+    }
+
     public static TokenConta reconstituir(UUID id, String token, Email email, TokenContaFinalidade finalidade,
                                           Instant expiraEm, Instant criadoEm, boolean consumido) {
         return new TokenConta(id, token, email, finalidade, expiraEm, criadoEm, consumido);

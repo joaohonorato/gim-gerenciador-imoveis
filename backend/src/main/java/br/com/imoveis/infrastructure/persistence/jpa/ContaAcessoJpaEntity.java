@@ -35,6 +35,9 @@ public class ContaAcessoJpaEntity {
     @Column(name = "email_verificado", nullable = false)
     private boolean emailVerificado;
 
+    @Column(name = "email_pendente")
+    private String emailPendente;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -58,4 +61,7 @@ public class ContaAcessoJpaEntity {
 
     public boolean isEmailVerificado() { return emailVerificado; }
     public void setEmailVerificado(boolean emailVerificado) { this.emailVerificado = emailVerificado; }
+
+    public String getEmailPendente() { return emailPendente; }
+    public void setEmailPendente(String emailPendente) { this.emailPendente = emailPendente; }
 }

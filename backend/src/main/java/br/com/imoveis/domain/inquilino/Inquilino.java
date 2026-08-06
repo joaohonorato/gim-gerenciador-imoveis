@@ -4,14 +4,15 @@ import br.com.imoveis.domain.shared.Cpf;
 import br.com.imoveis.domain.shared.Email;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 public class Inquilino {
 
     private final UUID id;
-    private final String nome;
+    private String nome;
     private final Cpf cpf;
-    private final Email email;
+    private Email email;
     private final Instant criadoEm;
 
     private Inquilino(UUID id, String nome, Cpf cpf, Email email, Instant criadoEm) {
@@ -29,6 +30,20 @@ public class Inquilino {
 
     public static Inquilino reconstituir(UUID id, String nome, Cpf cpf, Email email, Instant criadoEm) {
         return new Inquilino(id, nome, cpf, email, criadoEm);
+    }
+
+    public void renomear(String novoNome) {
+        if (novoNome == null || novoNome.isBlank()) {
+            throw new IllegalArgumentException("nome obrigatório");
+        }
+        this.nome = novoNome.trim();
+    }
+
+    // Chamado só depois que ContaAcesso.confirmarAlteracaoEmail() já validou
+    // a posse do novo e-mail — mantém o e-mail redundante aqui em sincronia
+    // com o de ContaAcesso (fonte de verdade pra login).
+    public void atualizarEmail(Email novoEmail) {
+        this.email = Objects.requireNonNull(novoEmail, "email obrigatório");
     }
 
     public UUID id() { return id; }

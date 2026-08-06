@@ -9,16 +9,18 @@ import java.util.UUID;
 public class ContaAcesso {
 
     private final UUID id;
-    private final Email email;
+    private Email email;
     private String senhaHash;
     private final TipoContaAcesso tipo;
     private final UUID proprietarioId;
     private final UUID inquilinoId;
     private final Instant criadoEm;
     private boolean emailVerificado;
+    private Email emailPendente;
 
     private ContaAcesso(UUID id, Email email, String senhaHash, TipoContaAcesso tipo,
-                        UUID proprietarioId, UUID inquilinoId, Instant criadoEm, boolean emailVerificado) {
+                        UUID proprietarioId, UUID inquilinoId, Instant criadoEm, boolean emailVerificado,
+                        Email emailPendente) {
         this.id = id;
         this.email = Objects.requireNonNull(email, "email obrigatório");
         this.senhaHash = validaSenhaHash(senhaHash);
@@ -27,24 +29,26 @@ public class ContaAcesso {
         this.inquilinoId = inquilinoId;
         this.criadoEm = Objects.requireNonNull(criadoEm, "criadoEm obrigatório");
         this.emailVerificado = emailVerificado;
+        this.emailPendente = emailPendente;
     }
 
     public static ContaAcesso vincularProprietario(Email email, String senhaHash, UUID proprietarioId, Instant agora) {
         Objects.requireNonNull(proprietarioId, "proprietarioId obrigatório");
         return new ContaAcesso(UUID.randomUUID(), email, senhaHash, TipoContaAcesso.PROPRIETARIO,
-            proprietarioId, null, agora, false);
+            proprietarioId, null, agora, false, null);
     }
 
     public static ContaAcesso vincularInquilino(Email email, String senhaHash, UUID inquilinoId, Instant agora) {
         Objects.requireNonNull(inquilinoId, "inquilinoId obrigatório");
         return new ContaAcesso(UUID.randomUUID(), email, senhaHash, TipoContaAcesso.INQUILINO,
-            null, inquilinoId, agora, false);
+            null, inquilinoId, agora, false, null);
     }
 
     public static ContaAcesso reconstituir(UUID id, Email email, String senhaHash, TipoContaAcesso tipo,
                                            UUID proprietarioId, UUID inquilinoId, Instant criadoEm,
-                                           boolean emailVerificado) {
-        return new ContaAcesso(id, email, senhaHash, tipo, proprietarioId, inquilinoId, criadoEm, emailVerificado);
+                                           boolean emailVerificado, Email emailPendente) {
+        return new ContaAcesso(id, email, senhaHash, tipo, proprietarioId, inquilinoId, criadoEm,
+            emailVerificado, emailPendente);
     }
 
     public void redefinirSenha(String novoHash) {
@@ -56,6 +60,29 @@ public class ContaAcesso {
             throw new IllegalStateException("e-mail já verificado");
         }
         emailVerificado = true;
+    }
+
+    // Não aplica na hora — fica pendente até confirmarAlteracaoEmail() ser
+    // chamado a partir do token enviado pro *novo* endereço. Assim um erro
+    // de digitação no novo e-mail nunca troca o e-mail de login sem prova de
+    // que o usuário realmente tem acesso a ele.
+    public void solicitarAlteracaoEmail(Email novoEmail) {
+        Objects.requireNonNull(novoEmail, "novoEmail obrigatório");
+        if (novoEmail.equals(this.email)) {
+            throw new IllegalArgumentException("novo e-mail é igual ao atual");
+        }
+        this.emailPendente = novoEmail;
+    }
+
+    public void confirmarAlteracaoEmail() {
+        if (emailPendente == null) {
+            throw new IllegalStateException("não há alteração de e-mail pendente");
+        }
+        this.email = emailPendente;
+        this.emailPendente = null;
+        // Clicar no link de confirmação enviado pro novo endereço já prova
+        // posse dele — não faz sentido pedir uma segunda verificação.
+        this.emailVerificado = true;
     }
 
     private static String validaSenhaHash(String senhaHash) {
@@ -74,4 +101,5 @@ public class ContaAcesso {
     public UUID inquilinoId() { return inquilinoId; }
     public Instant criadoEm() { return criadoEm; }
     public boolean emailVerificado() { return emailVerificado; }
+    public Email emailPendente() { return emailPendente; }
 }
