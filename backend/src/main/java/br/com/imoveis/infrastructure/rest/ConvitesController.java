@@ -1,28 +1,40 @@
 package br.com.imoveis.infrastructure.rest;
 
 import br.com.imoveis.application.exception.NaoEncontradoException;
+import br.com.imoveis.application.ports.ArquivoRepository;
 import br.com.imoveis.application.ports.Clock;
 import br.com.imoveis.application.ports.ConviteLinkSender;
 import br.com.imoveis.application.ports.ContratoRepository;
 import br.com.imoveis.application.ports.ConviteRepository;
+import br.com.imoveis.application.ports.EventoAuditoriaRepository;
 import br.com.imoveis.application.ports.ImovelRepository;
+import br.com.imoveis.application.ports.ProprietarioRepository;
 import br.com.imoveis.application.usecase.AceitarConviteComContaExistente;
 import br.com.imoveis.application.usecase.AceitarConvite;
+import br.com.imoveis.application.usecase.AdicionarDocumentoGarantia;
 import br.com.imoveis.application.usecase.AssinarContratoPorConvite;
 import br.com.imoveis.application.usecase.EnviarGarantiaDaCandidatura;
 import br.com.imoveis.application.usecase.EnviarLinkConvite;
 import br.com.imoveis.application.usecase.GerarConvite;
+import br.com.imoveis.application.usecase.RegistrarEventoAuditoria;
 import br.com.imoveis.application.usecase.RevogarConvite;
+import br.com.imoveis.domain.arquivo.Arquivo;
+import br.com.imoveis.domain.arquivo.TipoArquivo;
+import br.com.imoveis.domain.auditoria.EntidadeAuditoria;
+import br.com.imoveis.domain.auditoria.TipoEventoAuditoria;
 import br.com.imoveis.domain.contrato.Contrato;
 import br.com.imoveis.domain.convite.Candidatura;
 import br.com.imoveis.domain.contrato.GarantiaTipo;
 import br.com.imoveis.domain.contrato.TipoContrato;
+import br.com.imoveis.domain.convite.CanalEnvioConvite;
 import br.com.imoveis.domain.convite.Convite;
+import br.com.imoveis.domain.convite.ConviteStatus;
 import br.com.imoveis.domain.imovel.Imovel;
 import br.com.imoveis.domain.shared.Dinheiro;
 import br.com.imoveis.domain.shared.Periodo;
 import br.com.imoveis.infrastructure.auth.CurrentPrincipal;
 import br.com.imoveis.infrastructure.auth.Principal;
+import br.com.imoveis.infrastructure.rest.dto.ContratoDtos.ArquivoInfoResponse;
 import br.com.imoveis.infrastructure.rest.dto.ContratoDtos.ContratoResponse;
 import br.com.imoveis.infrastructure.rest.dto.ConviteDtos.*;
 import io.micronaut.http.HttpRequest;
@@ -30,9 +42,14 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.annotation.Status;
+import io.micronaut.http.multipart.CompletedFileUpload;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -48,9 +65,14 @@ public class ConvitesController {
     private final EnviarGarantiaDaCandidatura enviarGarantia;
     private final EnviarLinkConvite enviarLinkConvite;
     private final RevogarConvite revogarConvite;
+    private final AdicionarDocumentoGarantia adicionarDocumentoGarantia;
     private final ConviteRepository conviteRepository;
     private final ContratoRepository contratoRepository;
     private final ImovelRepository imovelRepository;
+    private final ProprietarioRepository proprietarioRepository;
+    private final ArquivoRepository arquivoRepository;
+    private final RegistrarEventoAuditoria registrarEventoAuditoria;
+    private final EventoAuditoriaRepository eventoAuditoriaRepository;
     private final Clock clock;
 
     public ConvitesController(GerarConvite gerarConvite, AceitarConvite aceitarConvite,
@@ -59,9 +81,14 @@ public class ConvitesController {
                                EnviarGarantiaDaCandidatura enviarGarantia,
                                EnviarLinkConvite enviarLinkConvite,
                                RevogarConvite revogarConvite,
+                               AdicionarDocumentoGarantia adicionarDocumentoGarantia,
                                ConviteRepository conviteRepository,
                                ContratoRepository contratoRepository,
                                ImovelRepository imovelRepository,
+                               ProprietarioRepository proprietarioRepository,
+                               ArquivoRepository arquivoRepository,
+                               RegistrarEventoAuditoria registrarEventoAuditoria,
+                               EventoAuditoriaRepository eventoAuditoriaRepository,
                                Clock clock) {
         this.gerarConvite = gerarConvite;
         this.aceitarConvite = aceitarConvite;
@@ -70,9 +97,14 @@ public class ConvitesController {
         this.enviarGarantia = enviarGarantia;
         this.enviarLinkConvite = enviarLinkConvite;
         this.revogarConvite = revogarConvite;
+        this.adicionarDocumentoGarantia = adicionarDocumentoGarantia;
         this.conviteRepository = conviteRepository;
         this.contratoRepository = contratoRepository;
         this.imovelRepository = imovelRepository;
+        this.proprietarioRepository = proprietarioRepository;
+        this.arquivoRepository = arquivoRepository;
+        this.registrarEventoAuditoria = registrarEventoAuditoria;
+        this.eventoAuditoriaRepository = eventoAuditoriaRepository;
         this.clock = clock;
     }
 
@@ -80,14 +112,14 @@ public class ConvitesController {
     public ConviteResponse revogar(@PathVariable String token, HttpRequest<?> req) {
         Principal p = CurrentPrincipal.require(req);
         Convite convite = revogarConvite.execute(token, p.requireProprietarioId());
-        return ConviteResponse.from(convite);
+        return toResponse(convite);
     }
 
     @Get(value = "/convites", produces = MediaType.APPLICATION_JSON)
     public List<ConviteResponse> listarDoProprietario(HttpRequest<?> req) {
         Principal p = CurrentPrincipal.require(req);
         return conviteRepository.findByProprietarioId(p.requireProprietarioId()).stream()
-            .map(ConviteResponse::from)
+            .map(this::toResponse)
             .toList();
     }
 
@@ -99,7 +131,7 @@ public class ConvitesController {
             .orElseThrow(() -> new NaoEncontradoException("imóvel"));
         return conviteRepository.findByImovelId(imovel.id()).stream()
             .filter(c -> c.ativo(clock.now()))
-            .map(ConviteResponse::from)
+            .map(this::toResponse)
             .toList();
     }
 
@@ -112,18 +144,18 @@ public class ConvitesController {
             new Dinheiro(body.valorAluguel()),
             new Periodo(body.dataInicio(), body.dataFim()),
             body.garantiaAceita());
-        Convite convite = gerarConvite.execute(imovelId, p.proprietarioId(), condicoes, body.emailInquilino());
+        Convite convite = gerarConvite.execute(imovelId, body.unidadeId(), p.proprietarioId(), condicoes, body.emailInquilino());
         enviarLinkConvite.execute(
             convite,
             body.canalEnvio(),
             body.emailInquilino(),
             body.telefoneInquilino());
-        return ConviteResponse.from(convite);
+        return toResponse(convite);
     }
 
     @Get(value = "/convites/{token}", produces = MediaType.APPLICATION_JSON)
     public ConviteResponse buscarPorToken(@PathVariable String token) {
-        return conviteRepository.findByToken(token).map(ConviteResponse::from)
+        return conviteRepository.findByToken(token).map(this::toResponse)
             .orElseThrow(() -> new NaoEncontradoException("convite"));
     }
 
@@ -144,13 +176,45 @@ public class ConvitesController {
             throw new IllegalArgumentException("canal de envio é obrigatório para reenvio");
         }
 
-        enviarLinkConvite.execute(
-            convite,
-            body.canalEnvio(),
-            body.emailInquilino(),
-            body.telefoneInquilino());
+        // Reenviar um convite expirado (mas ainda pendente, sem candidatura
+        // criada) estende o prazo em vez de só reenviar um link que ia dar
+        // "expirado" de novo assim que o inquilino tentasse aceitar — ver
+        // Convite.renovar. Rank 5 do backlog técnico: recuperação de acesso.
+        if (convite.status() == ConviteStatus.PENDENTE && convite.expirado(clock.now())) {
+            convite.renovar(clock.now());
+            conviteRepository.save(convite);
+            registrarEventoAuditoria.execute(EntidadeAuditoria.CONVITE, convite.id(), TipoEventoAuditoria.RENOVADO, null);
+        }
 
-        return ConviteResponse.from(convite);
+        // Se o corpo não repetir o destino, reaproveita o último destino
+        // enviado nesse mesmo canal — evita o proprietário ter que digitar
+        // de novo o e-mail/telefone só pra reenviar um link já existente.
+        String emailInquilino = body.emailInquilino() != null ? body.emailInquilino()
+            : (body.canalEnvio() == CanalEnvioConvite.EMAIL ? convite.ultimoDestinoEnvio() : null);
+        String telefoneInquilino = body.telefoneInquilino() != null ? body.telefoneInquilino()
+            : (body.canalEnvio() == CanalEnvioConvite.WHATSAPP ? convite.ultimoDestinoEnvio() : null);
+
+        enviarLinkConvite.execute(convite, body.canalEnvio(), emailInquilino, telefoneInquilino);
+
+        return toResponse(convite);
+    }
+
+    @Get(value = "/convites/{token}/eventos", produces = MediaType.APPLICATION_JSON)
+    public List<EventoAuditoriaResponse> eventos(@PathVariable String token, HttpRequest<?> req) {
+        Principal p = CurrentPrincipal.require(req);
+        UUID proprietarioId = p.requireProprietarioId();
+        Convite convite = conviteRepository.findByToken(token)
+            .orElseThrow(() -> new NaoEncontradoException("convite"));
+        if (!convite.proprietarioId().equals(proprietarioId)) {
+            throw new NaoEncontradoException("convite");
+        }
+        return eventoAuditoriaRepository.findByEntidade(EntidadeAuditoria.CONVITE, convite.id()).stream()
+            .map(EventoAuditoriaResponse::from)
+            .toList();
+    }
+
+    private ConviteResponse toResponse(Convite c) {
+        return ConviteResponse.from(c, c.expirado(clock.now()));
     }
 
     @Status(HttpStatus.CREATED)
@@ -173,6 +237,48 @@ public class ConvitesController {
         return CandidaturaResponse.from(enviarGarantia.execute(token, body.tipo(), body.dadosEspecificos()));
     }
 
+    // Upload do documento comprobatório da garantia (RG, comprovante de
+    // renda, apólice) ainda na etapa de candidatura — antes de existir
+    // contrato, então o donoId do ARQUIVO é a candidaturaId, não uma
+    // contratoId (ver AdicionarDocumentoGarantia). Rota pública por token,
+    // igual a /convites/{token}/garantia, já que o inquilino pode ainda não
+    // ter sessão autenticada neste ponto do fluxo.
+    @ExecuteOn(TaskExecutors.BLOCKING)
+    @Status(HttpStatus.CREATED)
+    @Post(value = "/convites/{token}/garantia/documentos", consumes = MediaType.MULTIPART_FORM_DATA, produces = MediaType.APPLICATION_JSON)
+    public ArquivoInfoResponse adicionarDocumentoGarantiaPorConvite(@PathVariable String token, CompletedFileUpload documento) {
+        UUID candidaturaId = candidaturaIdDoConvite(token);
+        String contentType = documento.getContentType().map(MediaType::toString).orElse(null);
+        try {
+            Arquivo arquivo = adicionarDocumentoGarantia.execute(candidaturaId, documento.getFilename(), contentType,
+                documento.getSize(), documento.getInputStream());
+            return toArquivoInfo(arquivo);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Get(value = "/convites/{token}/garantia/documentos", produces = MediaType.APPLICATION_JSON)
+    public List<ArquivoInfoResponse> documentosGarantiaPorConvite(@PathVariable String token) {
+        UUID candidaturaId = candidaturaIdDoConvite(token);
+        return arquivoRepository.findByDonoIdAndTipo(candidaturaId, TipoArquivo.DOCUMENTO_GARANTIA).stream()
+            .map(this::toArquivoInfo)
+            .toList();
+    }
+
+    private UUID candidaturaIdDoConvite(String token) {
+        Convite convite = conviteRepository.findByToken(token)
+            .orElseThrow(() -> new NaoEncontradoException("convite"));
+        if (convite.candidaturaId() == null) {
+            throw new IllegalStateException("candidatura ainda não iniciada para este convite");
+        }
+        return convite.candidaturaId();
+    }
+
+    private ArquivoInfoResponse toArquivoInfo(Arquivo arquivo) {
+        return new ArquivoInfoResponse(arquivo.id(), arquivo.nomeOriginal());
+    }
+
     @Get(value = "/convites/me", produces = MediaType.APPLICATION_JSON)
     public List<ConviteInquilinoResponse> convitesDoInquilino(HttpRequest<?> req) {
         Principal p = CurrentPrincipal.require(req);
@@ -187,7 +293,15 @@ public class ConvitesController {
     @Post(value = "/convites/{token}/assinar", produces = MediaType.APPLICATION_JSON)
     public ContratoResponse assinarComoInquilino(@PathVariable String token) {
         Contrato contrato = assinarContratoPorConvite.execute(token);
-        return ContratoResponse.from(contrato);
+        String nomeProprietario = proprietarioRepository.findById(contrato.proprietarioId())
+            .map(br.com.imoveis.domain.proprietario.Proprietario::nome)
+            .orElse(null);
+        Imovel imovel = imovelRepository.findUnidadeById(contrato.unidadeId())
+            .flatMap(unidade -> imovelRepository.findById(unidade.imovelId()))
+            .orElse(null);
+        String enderecoImovel = imovel == null ? null : imovel.enderecoCompleto();
+        UUID imovelId = imovel == null ? null : imovel.id();
+        return ContratoResponse.from(contrato, nomeProprietario, enderecoImovel, imovelId);
     }
 
     private ConviteInquilinoResponse toInquilinoResponse(UUID inquilinoId, Candidatura candidatura) {
@@ -200,12 +314,21 @@ public class ConvitesController {
             convite.condicoes().periodoSugerido().inicio(),
             convite.condicoes().periodoSugerido().fim());
 
+        String enderecoImovel = imovelRepository.findById(convite.imovelId())
+            .map(Imovel::enderecoCompleto)
+            .orElse(null);
+        String nomeProprietario = proprietarioRepository.findById(convite.proprietarioId())
+            .map(br.com.imoveis.domain.proprietario.Proprietario::nome)
+            .orElse(null);
+
         return new ConviteInquilinoResponse(
             convite.id(),
             convite.token(),
             convite.imovelId(),
+            enderecoImovel,
             convite.unidadeId(),
             convite.proprietarioId(),
+            nomeProprietario,
             convite.status(),
             candidatura.id(),
             candidatura.status(),

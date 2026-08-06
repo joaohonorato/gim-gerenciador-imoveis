@@ -8,40 +8,43 @@ public class Chamado {
 
     private final UUID id;
     private final UUID imovelId;
+    private final UUID unidadeId;
     private final UUID abertoPor;
-    private final CategoriaChamado categoria;
+    private final UUID categoriaId;
     private final String descricao;
     private ChamadoStatus status;
     private final Instant abertoEm;
     private Instant resolvidoEm;
 
-    private Chamado(UUID id, UUID imovelId, UUID abertoPor, CategoriaChamado categoria,
+    private Chamado(UUID id, UUID imovelId, UUID unidadeId, UUID abertoPor, UUID categoriaId,
                     String descricao, ChamadoStatus status, Instant abertoEm, Instant resolvidoEm) {
         this.id = id;
         this.imovelId = imovelId;
+        this.unidadeId = unidadeId;
         this.abertoPor = abertoPor;
-        this.categoria = categoria;
+        this.categoriaId = categoriaId;
         this.descricao = descricao;
         this.status = status;
         this.abertoEm = abertoEm;
         this.resolvidoEm = resolvidoEm;
     }
 
-    public static Chamado abrir(UUID imovelId, UUID inquilinoId, CategoriaChamado categoria,
+    public static Chamado abrir(UUID imovelId, UUID unidadeId, UUID inquilinoId, UUID categoriaId,
                                  String descricao, Instant agora) {
         Objects.requireNonNull(imovelId);
+        Objects.requireNonNull(unidadeId);
         Objects.requireNonNull(inquilinoId);
-        Objects.requireNonNull(categoria);
+        Objects.requireNonNull(categoriaId);
         if (descricao == null || descricao.isBlank()) {
             throw new IllegalArgumentException("descricao obrigatória");
         }
-        return new Chamado(UUID.randomUUID(), imovelId, inquilinoId, categoria, descricao.trim(),
+        return new Chamado(UUID.randomUUID(), imovelId, unidadeId, inquilinoId, categoriaId, descricao.trim(),
             ChamadoStatus.ABERTO, agora, null);
     }
 
-    public static Chamado reconstituir(UUID id, UUID imovelId, UUID abertoPor, CategoriaChamado categoria,
+    public static Chamado reconstituir(UUID id, UUID imovelId, UUID unidadeId, UUID abertoPor, UUID categoriaId,
                                         String descricao, ChamadoStatus status, Instant abertoEm, Instant resolvidoEm) {
-        return new Chamado(id, imovelId, abertoPor, categoria, descricao, status, abertoEm, resolvidoEm);
+        return new Chamado(id, imovelId, unidadeId, abertoPor, categoriaId, descricao, status, abertoEm, resolvidoEm);
     }
 
     public void iniciarAtendimento() {
@@ -61,8 +64,9 @@ public class Chamado {
 
     public UUID id() { return id; }
     public UUID imovelId() { return imovelId; }
+    public UUID unidadeId() { return unidadeId; }
     public UUID abertoPor() { return abertoPor; }
-    public CategoriaChamado categoria() { return categoria; }
+    public UUID categoriaId() { return categoriaId; }
     public String descricao() { return descricao; }
     public ChamadoStatus status() { return status; }
     public Instant abertoEm() { return abertoEm; }

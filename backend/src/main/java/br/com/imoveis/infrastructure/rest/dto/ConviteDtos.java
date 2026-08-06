@@ -1,5 +1,7 @@
 package br.com.imoveis.infrastructure.rest.dto;
 
+import br.com.imoveis.domain.auditoria.EventoAuditoria;
+import br.com.imoveis.domain.auditoria.TipoEventoAuditoria;
 import br.com.imoveis.domain.contrato.GarantiaTipo;
 import br.com.imoveis.domain.contrato.TipoContrato;
 import br.com.imoveis.domain.contrato.ContratoAssinaturaStatus;
@@ -8,6 +10,7 @@ import br.com.imoveis.domain.convite.Candidatura;
 import br.com.imoveis.domain.convite.CandidaturaStatus;
 import br.com.imoveis.domain.convite.Convite;
 import br.com.imoveis.domain.convite.ConviteStatus;
+import br.com.imoveis.infrastructure.rest.dto.ContratoDtos.ArquivoInfoResponse;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -16,6 +19,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public final class ConviteDtos {
@@ -23,6 +27,11 @@ public final class ConviteDtos {
 
     @Serdeable
     public record NovoConviteRequest(
+        // Opcional: se o imóvel tiver mais de uma unidade (ver
+        // POST /imoveis/{id}/unidades), indica qual está sendo ofertada
+        // nesse convite. Omitido/nulo, resolve pra unidade padrão — mantém o
+        // caso comum (imóvel com uma unidade só) sem exigir escolha.
+        UUID unidadeId,
         TipoContrato tipoContrato,
         BigDecimal valorAluguel,
         LocalDate dataInicio,
@@ -35,11 +44,16 @@ public final class ConviteDtos {
 
     @Serdeable
     public record ConviteResponse(UUID id, String token, UUID imovelId, UUID unidadeId,
-                                   Instant expiraEm, TipoContrato tipoContrato,
+                                   Instant expiraEm, boolean expirado, TipoContrato tipoContrato,
                                    BigDecimal valorAluguel, LocalDate dataInicio, LocalDate dataFim,
                                    GarantiaTipo garantiaAceita, ConviteStatus status,
                                    EnvioConviteResponse envio) {
-        public static ConviteResponse from(Convite c) {
+        // expirado é computado pelo chamador (a partir de um Clock injetado
+        // no controller) em vez de aqui dentro, porque o domínio nunca
+        // persiste ConviteStatus.EXPIRADO de verdade — é sempre derivado de
+        // expiraEm vs. "agora" no momento da resposta, não um estado gravado
+        // no banco. Ver Convite.expirado(Instant).
+        public static ConviteResponse from(Convite c, boolean expirado) {
             EnvioConviteResponse envioResponse = c.ultimoCanalEnvio() == null ? null : new EnvioConviteResponse(
                 c.ultimoCanalEnvio(),
                 c.ultimoStatusEnvio(),
@@ -48,7 +62,7 @@ public final class ConviteDtos {
                 c.ultimoDetalheEnvio(),
                 c.ultimoEnvioEm(),
                 c.tentativasEnvio());
-            return new ConviteResponse(c.id(), c.token(), c.imovelId(), c.unidadeId(), c.expiraEm(),
+            return new ConviteResponse(c.id(), c.token(), c.imovelId(), c.unidadeId(), c.expiraEm(), expirado,
                 c.condicoes().tipoContrato(), c.condicoes().valorAluguel().valor(),
                 c.condicoes().periodoSugerido().inicio(), c.condicoes().periodoSugerido().fim(),
                 c.condicoes().garantiaAceita(), c.status(), envioResponse);
@@ -111,15 +125,18 @@ public final class ConviteDtos {
         LocalDate dataFim,
         GarantiaTipo garantiaAceita,
         GarantiaTipo garantiaEscolhida,
-        Instant criadaEm) {}
+        Instant criadaEm,
+        List<ArquivoInfoResponse> documentosGarantia) {}
 
     @Serdeable
     public record ConviteInquilinoResponse(
         UUID conviteId,
         String token,
         UUID imovelId,
+        String enderecoImovel,
         UUID unidadeId,
         UUID proprietarioId,
+        String nomeProprietario,
         ConviteStatus conviteStatus,
         UUID candidaturaId,
         CandidaturaStatus candidaturaStatus,
@@ -132,4 +149,11 @@ public final class ConviteDtos {
         Instant criadaEm,
         UUID contratoId,
         ContratoAssinaturaStatus statusAssinaturaContrato) {}
+
+    @Serdeable
+    public record EventoAuditoriaResponse(TipoEventoAuditoria tipoEvento, String detalhe, Instant criadoEm) {
+        public static EventoAuditoriaResponse from(EventoAuditoria e) {
+            return new EventoAuditoriaResponse(e.tipoEvento(), e.detalhe(), e.criadoEm());
+        }
+    }
 }

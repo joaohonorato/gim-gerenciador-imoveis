@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { View, Text, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
-import { apiFetch } from '@/api/client';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { apiFetch, getErrorMessage } from '@/api/client';
 import { Imovel, NovoImovelRequest } from '@/api/types';
 import { Card } from '@/design/Card';
 import { Button } from '@/design/Button';
 import { Pill } from '@/design/Pill';
+import { UnidadesCard } from '@/design/UnidadesCard';
 
 interface ViaCepResponse {
   erro?: boolean;
@@ -15,6 +17,7 @@ interface ViaCepResponse {
 }
 
 export default function NovoImovelScreen() {
+  const insets = useSafeAreaInsets();
   const [cep, setCep] = useState('');
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [endereco, setEndereco] = useState('');
@@ -31,6 +34,11 @@ export default function NovoImovelScreen() {
   const [iptu, setIptu] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Etapa 2: depois de criar o imóvel, oferece cadastrar unidades extras
+  // (além da padrão automática) antes de voltar pra lista — sem obrigar
+  // nada, só fica disponível pra quem precisa (ex.: terreno com várias
+  // casas). Presença de `imovelCriado` é o que decide qual etapa renderizar.
+  const [imovelCriado, setImovelCriado] = useState<Imovel | null>(null);
 
   async function onChangeCep(valor: string) {
     setCep(valor);
@@ -77,20 +85,41 @@ export default function NovoImovelScreen() {
         areaM2: numeroOuIndefinido(areaM2),
         iptu: numeroOuIndefinido(iptu),
       };
-      await apiFetch<Imovel>('/imoveis', {
+      const criado = await apiFetch<Imovel>('/imoveis', {
         method: 'POST',
         body: JSON.stringify(body),
       });
-      router.replace('/imoveis');
+      setImovelCriado(criado);
     } catch (e: any) {
-      setError(e.message ?? 'Erro ao salvar imóvel');
+      setError(getErrorMessage(e, 'Erro ao salvar imóvel'));
     } finally {
       setLoading(false);
     }
   }
 
+  if (imovelCriado) {
+    return (
+      <ScrollView className="flex-1 bg-surface" contentContainerClassName="p-6 gap-4" contentContainerStyle={{ paddingTop: insets.top + 24 }}>
+        <View className="mb-2">
+          <Text className="text-primary" style={{ fontSize: 24, fontWeight: '800' }}>Imóvel cadastrado ✓</Text>
+          <Text className="text-muted" style={{ fontSize: 14, marginTop: 4 }}>
+            Se esse imóvel tiver mais de uma unidade (ex.: terreno com várias casas, cada uma com vários apartamentos), cadastre abaixo — ou pule e adicione depois na tela do imóvel.
+          </Text>
+        </View>
+
+        <UnidadesCard imovel={imovelCriado} onUpdated={setImovelCriado} />
+
+        <Button
+          testID="btn-concluir-cadastro-imovel"
+          label="Concluir cadastro"
+          onPress={() => router.replace('/imoveis')}
+        />
+      </ScrollView>
+    );
+  }
+
   return (
-    <ScrollView className="flex-1 bg-surface" contentContainerClassName="p-6">
+    <ScrollView className="flex-1 bg-surface" contentContainerClassName="p-6" contentContainerStyle={{ paddingTop: insets.top + 24 }}>
       <View className="flex-row items-center mb-6 gap-4">
         <Button label="← Voltar" onPress={() => router.back()} variant="outline" />
         <Text className="text-primary" style={{ fontSize: 24, fontWeight: '800' }}>Novo imóvel</Text>

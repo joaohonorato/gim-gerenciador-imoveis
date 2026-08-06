@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Linking, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { apiFetch } from '@/api/client';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { apiFetch, getErrorMessage } from '@/api/client';
+import { Imovel } from '@/api/types';
 import { Button } from '@/design/Button';
 
 type CanalEnvio = 'EMAIL' | 'WHATSAPP';
@@ -23,6 +25,7 @@ type ConviteCriado = {
 };
 
 export default function NovoConviteImovelScreen() {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [canalEnvio, setCanalEnvio] = useState<CanalEnvio>('EMAIL');
@@ -35,6 +38,25 @@ export default function NovoConviteImovelScreen() {
   });
   const [garantiaAceita, setGarantiaAceita] = useState<GarantiaTipo>('CAUCAO');
 
+  // Só mostra escolha de unidade quando o imóvel tiver mais de uma — a
+  // grande maioria só tem a padrão automática, e nesse caso o fluxo
+  // continua idêntico a antes (nenhuma unidade pra escolher). Ver
+  // POST /imoveis/{id}/unidades pra cadastrar mais.
+  const [unidades, setUnidades] = useState<Array<{ id: string; nome: string; padrao: boolean }>>([]);
+  const [unidadeId, setUnidadeId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    apiFetch<Imovel>(`/imoveis/${id}`)
+      .then((imovel) => {
+        const lista = imovel.unidades ?? [];
+        setUnidades(lista);
+        const padrao = lista.find((u) => u.padrao) ?? lista[0];
+        setUnidadeId(padrao?.id ?? null);
+      })
+      .catch(() => {});
+  }, [id]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [feedback, setFeedback] = useState<{ tone: 'success' | 'warning' | 'danger'; message: string } | null>(null);
@@ -46,12 +68,12 @@ export default function NovoConviteImovelScreen() {
   const dadosSelecionados = dadosContrato[tipoContrato];
 
   const canSubmit = useMemo(() => {
-    if (!id) return false;
+    if (!id || !unidadeId) return false;
     if (!dadosSelecionados.valorAluguel.trim() || Number.isNaN(Number(dadosSelecionados.valorAluguel))) return false;
     if (!dadosSelecionados.dataInicio.trim() || !dadosSelecionados.dataFim.trim()) return false;
     if (canalEnvio === 'EMAIL') return emailInquilino.trim().length > 3;
     return telefoneInquilino.trim().length >= 10;
-  }, [id, dadosSelecionados, canalEnvio, emailInquilino, telefoneInquilino]);
+  }, [id, unidadeId, dadosSelecionados, canalEnvio, emailInquilino, telefoneInquilino]);
 
   function atualizarDadosContrato(campo: 'valorAluguel' | 'dataInicio' | 'dataFim', valor: string) {
     setDadosContrato((anterior) => ({
@@ -97,6 +119,7 @@ export default function NovoConviteImovelScreen() {
       const convite = await apiFetch<ConviteCriado>(`/imoveis/${id}/convites`, {
         method: 'POST',
         body: JSON.stringify({
+          unidadeId,
           tipoContrato,
           valorAluguel: Number(dadosSelecionados.valorAluguel),
           dataInicio: dadosSelecionados.dataInicio,
@@ -114,7 +137,7 @@ export default function NovoConviteImovelScreen() {
       }
       setFeedback(envioFeedback(convite.envio, false));
     } catch (e: any) {
-      setError(e.message ?? 'Não foi possível enviar o convite');
+      setError(getErrorMessage(e, 'Não foi possível enviar o convite'));
     } finally {
       setLoading(false);
     }
@@ -146,7 +169,7 @@ export default function NovoConviteImovelScreen() {
       }
       setFeedback(envioFeedback(convite.envio, true));
     } catch (e: any) {
-      setError(e.message ?? 'Não foi possível reenviar o convite');
+      setError(getErrorMessage(e, 'Não foi possível reenviar o convite'));
     } finally {
       setLoading(false);
     }
@@ -159,9 +182,25 @@ export default function NovoConviteImovelScreen() {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 bg-surface">
-      <ScrollView contentContainerClassName="p-6">
+      <ScrollView contentContainerClassName="p-6" contentContainerStyle={{ paddingTop: insets.top + 24 }}>
         <Text className="text-primary mb-2" style={{ fontSize: 24, fontWeight: '800' }}>Enviar convite de locação</Text>
         <Text className="text-muted mb-6">Escolha o meio de envio do link: e-mail ou WhatsApp.</Text>
+
+        {unidades.length > 1 ? (
+          <View className="gap-3 mb-5">
+            <Text className="text-primary" style={{ fontWeight: '700' }}>Unidade</Text>
+            <View className="flex-row gap-2" style={{ flexWrap: 'wrap' }}>
+              {unidades.map((u) => (
+                <Button
+                  key={u.id}
+                  label={u.nome}
+                  variant={unidadeId === u.id ? 'primary' : 'outline'}
+                  onPress={() => setUnidadeId(u.id)}
+                />
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         <View className="gap-3 mb-5">
           <Text className="text-primary" style={{ fontWeight: '700' }}>Canal de envio</Text>

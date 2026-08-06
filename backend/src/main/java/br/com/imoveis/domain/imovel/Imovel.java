@@ -1,6 +1,7 @@
 package br.com.imoveis.domain.imovel;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -26,12 +27,13 @@ public class Imovel {
     private BigDecimal areaM2;
     private BigDecimal iptu;
     private String cep;
+    private final Instant criadoEm;
 
     private Imovel(UUID id, UUID proprietarioId, String endereco, String cidade,
                    String matricula, String numero, String bairro, String complemento,
                    TipoImovel tipoImovel, Visibilidade visibilidade, List<Unidade> unidades,
                    Integer quartos, Integer banheiros, Integer vagas, BigDecimal areaM2,
-                   BigDecimal iptu, String cep) {
+                   BigDecimal iptu, String cep, Instant criadoEm) {
         this.id = id;
         this.proprietarioId = proprietarioId;
         this.endereco = endereco;
@@ -49,55 +51,57 @@ public class Imovel {
         this.areaM2 = areaM2;
         this.iptu = iptu;
         this.cep = normalizarOpcional(cep);
+        this.criadoEm = criadoEm;
     }
 
-    public static Imovel cadastrar(UUID proprietarioId, String endereco, String cidade, String matricula) {
-        return cadastrar(proprietarioId, endereco, cidade, matricula, null, null, null, null);
+    public static Imovel cadastrar(UUID proprietarioId, String endereco, String cidade, String matricula, Instant agora) {
+        return cadastrar(proprietarioId, endereco, cidade, matricula, null, null, null, null, agora);
     }
 
     public static Imovel cadastrar(UUID proprietarioId, String endereco, String cidade, String matricula,
-                                   String numero, String bairro, String complemento, TipoImovel tipoImovel) {
+                                   String numero, String bairro, String complemento, TipoImovel tipoImovel, Instant agora) {
         return cadastrar(proprietarioId, endereco, cidade, matricula, numero, bairro, complemento, tipoImovel,
-            null, null, null, null, null, null);
+            null, null, null, null, null, null, agora);
     }
 
     public static Imovel cadastrar(UUID proprietarioId, String endereco, String cidade, String matricula,
                                    String numero, String bairro, String complemento, TipoImovel tipoImovel,
                                    Integer quartos, Integer banheiros, Integer vagas, BigDecimal areaM2,
-                                   BigDecimal iptu, String cep) {
+                                   BigDecimal iptu, String cep, Instant agora) {
         Objects.requireNonNull(proprietarioId, "proprietarioId obrigatório");
         exigirNaoBranco(endereco, "endereco");
         exigirNaoBranco(cidade, "cidade");
         exigirNaoBranco(matricula, "matricula");
+        Objects.requireNonNull(agora, "agora obrigatório");
         UUID id = UUID.randomUUID();
         List<Unidade> unidades = new ArrayList<>();
         unidades.add(Unidade.novaPadrao(id));
         return new Imovel(id, proprietarioId, endereco.trim(), cidade.trim(),
             matricula.trim(), normalizarOpcional(numero), normalizarOpcional(bairro),
             normalizarOpcional(complemento), tipoImovel, Visibilidade.PRIVADO, unidades,
-            quartos, banheiros, vagas, areaM2, iptu, cep);
+            quartos, banheiros, vagas, areaM2, iptu, cep, agora);
     }
 
     public static Imovel reconstituir(UUID id, UUID proprietarioId, String endereco, String cidade,
-                                       String matricula, Visibilidade visibilidade, List<Unidade> unidades) {
-        return reconstituir(id, proprietarioId, endereco, cidade, matricula, null, null, null, null, visibilidade, unidades);
+                                       String matricula, Visibilidade visibilidade, List<Unidade> unidades, Instant criadoEm) {
+        return reconstituir(id, proprietarioId, endereco, cidade, matricula, null, null, null, null, visibilidade, unidades, criadoEm);
     }
 
     public static Imovel reconstituir(UUID id, UUID proprietarioId, String endereco, String cidade,
                                       String matricula, String numero, String bairro, String complemento,
-                                      TipoImovel tipoImovel, Visibilidade visibilidade, List<Unidade> unidades) {
+                                      TipoImovel tipoImovel, Visibilidade visibilidade, List<Unidade> unidades, Instant criadoEm) {
         return reconstituir(id, proprietarioId, endereco, cidade, matricula, numero, bairro, complemento,
-            tipoImovel, visibilidade, unidades, null, null, null, null, null, null);
+            tipoImovel, visibilidade, unidades, null, null, null, null, null, null, criadoEm);
     }
 
     public static Imovel reconstituir(UUID id, UUID proprietarioId, String endereco, String cidade,
                                       String matricula, String numero, String bairro, String complemento,
                                       TipoImovel tipoImovel, Visibilidade visibilidade, List<Unidade> unidades,
                                       Integer quartos, Integer banheiros, Integer vagas, BigDecimal areaM2,
-                                      BigDecimal iptu, String cep) {
+                                      BigDecimal iptu, String cep, Instant criadoEm) {
         return new Imovel(id, proprietarioId, endereco, cidade, matricula, numero,
             bairro, complemento, tipoImovel, visibilidade, new ArrayList<>(unidades),
-            quartos, banheiros, vagas, areaM2, iptu, cep);
+            quartos, banheiros, vagas, areaM2, iptu, cep, criadoEm);
     }
 
     public Unidade unidadePadrao() {
@@ -105,6 +109,26 @@ public class Imovel {
             .filter(Unidade::padrao)
             .findFirst()
             .orElseThrow(() -> new IllegalStateException("imóvel sem unidade padrão: " + id));
+    }
+
+    // Subdivide o imóvel em mais unidades além da padrão automática — ex.:
+    // terreno com várias casas, cada uma com vários apartamentos, cadastrados
+    // um a um ou em lote (mesmo método pros dois casos, ver
+    // AdicionarUnidades). `unidades` já é a lista mutável guardada pela
+    // instância (não uma cópia) — chamador precisa persistir via
+    // ImovelRepository.save(this) depois pra gravar as novas linhas (ver
+    // ImovelRepositoryAdapter.save, que já percorre imovel.unidades() inteira).
+    public List<Unidade> adicionarUnidades(List<String> nomes) {
+        if (nomes == null || nomes.isEmpty()) {
+            throw new IllegalArgumentException("informe ao menos um nome de unidade");
+        }
+        List<Unidade> novas = new ArrayList<>();
+        for (String nome : nomes) {
+            Unidade unidade = Unidade.nova(id, nome);
+            unidades.add(unidade);
+            novas.add(unidade);
+        }
+        return novas;
     }
 
     private static void exigirNaoBranco(String valor, String campo) {
@@ -146,4 +170,5 @@ public class Imovel {
     public BigDecimal areaM2() { return areaM2; }
     public BigDecimal iptu() { return iptu; }
     public String cep() { return cep; }
+    public Instant criadoEm() { return criadoEm; }
 }

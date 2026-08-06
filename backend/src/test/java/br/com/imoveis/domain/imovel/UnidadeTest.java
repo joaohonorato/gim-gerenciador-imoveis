@@ -38,4 +38,18 @@ class UnidadeTest {
         u.liberar();
         assertThat(u.status()).isEqualTo(UnidadeStatus.VAGO);
     }
+
+    @Test
+    void novaNaoEhPadrao() {
+        Unidade u = Unidade.nova(UUID.randomUUID(), "Casa 1 - Apto 2");
+        assertThat(u.padrao()).isFalse();
+        assertThat(u.nome()).isEqualTo("Casa 1 - Apto 2");
+        assertThat(u.status()).isEqualTo(UnidadeStatus.VAGO);
+    }
+
+    @Test
+    void novaExigeNome() {
+        assertThatThrownBy(() -> Unidade.nova(UUID.randomUUID(), " "))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
 }

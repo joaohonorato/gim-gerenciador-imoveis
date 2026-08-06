@@ -29,8 +29,9 @@ public class ChamadoRepositoryAdapter implements ChamadoRepository {
         ChamadoJpaEntity e = jpa.findById(c.id()).orElseGet(ChamadoJpaEntity::new);
         e.setId(c.id());
         e.setImovelId(c.imovelId());
+        e.setUnidadeId(c.unidadeId());
         e.setAbertoPor(c.abertoPor());
-        e.setCategoria(c.categoria());
+        e.setCategoriaId(c.categoriaId());
         e.setDescricao(c.descricao());
         e.setStatus(c.status());
         e.setAbertoEm(c.abertoEm());
@@ -52,7 +53,7 @@ public class ChamadoRepositoryAdapter implements ChamadoRepository {
     }
 
     private Chamado toDomain(ChamadoJpaEntity e) {
-        return Chamado.reconstituir(e.getId(), e.getImovelId(), e.getAbertoPor(),
-            e.getCategoria(), e.getDescricao(), e.getStatus(), e.getAbertoEm(), e.getResolvidoEm());
+        return Chamado.reconstituir(e.getId(), e.getImovelId(), e.getUnidadeId(), e.getAbertoPor(),
+            e.getCategoriaId(), e.getDescricao(), e.getStatus(), e.getAbertoEm(), e.getResolvidoEm());
     }
 }

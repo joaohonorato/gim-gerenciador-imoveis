@@ -22,6 +22,13 @@ export interface Imovel {
   areaM2?: number | null;
   iptu?: number | null;
   cep?: string | null;
+  criadoEm: string;
+}
+
+// Mesmo request cobre cadastro individual (nomes com 1 item) e em lote
+// (vários de uma vez) — ver POST /imoveis/{id}/unidades.
+export interface AdicionarUnidadesRequest {
+  nomes: string[];
 }
 
 export interface NovoImovelRequest {
@@ -49,6 +56,11 @@ export interface Convite {
   dataFim: string;
   garantiaAceita: string | null;
   status?: 'PENDENTE' | 'EM_ANALISE' | 'CONSUMIDO' | 'EXPIRADO' | 'RECUSADO' | 'REVOGADO';
+  // Calculado no backend a partir de expiraEm — o domínio nunca grava
+  // status = EXPIRADO de verdade (ver docs/especificacao-produto.md §3),
+  // então este é o único jeito confiável de saber se o link já morreu
+  // enquanto status ainda aparece como PENDENTE.
+  expirado?: boolean;
   imovelId?: string;
   unidadeId?: string;
   proprietarioId?: string;
@@ -63,11 +75,21 @@ export interface Convite {
   } | null;
 }
 
+export interface EventoAuditoriaConvite {
+  tipoEvento: 'CRIADO' | 'ENVIADO' | 'RENOVADO' | 'CANDIDATURA_CRIADA' | 'CONSUMIDO' | 'ACEITO'
+    | 'REVOGADO' | 'RECUSADO' | 'TENTATIVA_COM_TOKEN_EXPIRADO' | 'TENTATIVA_COM_TOKEN_INVALIDO_OU_CONSUMIDO';
+  detalhe: string | null;
+  criadoEm: string;
+}
+
 export interface Contrato {
   id: string;
   unidadeId: string;
+  imovelId: string | null;
   inquilinoId: string;
   proprietarioId: string;
+  nomeProprietario: string | null;
+  enderecoImovel: string | null;
   tipo?: string;
   tipoContrato?: string;
   valorAluguel: number;
@@ -112,6 +134,29 @@ export interface MeResponse {
   tipoConta: TipoConta;
   avatarUrl: string | null;
   emailVerificado: boolean;
+  cpfCnpj: string | null;
+  telefone: string | null;
+  // E-mail solicitado via POST /auth/me/email, ainda não confirmado — o
+  // login continua pelo `email` acima até o link de confirmação (enviado
+  // pra este endereço) ser aberto.
+  emailPendente: string | null;
+}
+
+export interface AtualizarTelefoneRequest {
+  telefone: string;
+}
+
+export interface AtualizarNomeRequest {
+  nome: string;
+}
+
+export interface SolicitarAlteracaoEmailRequest {
+  novoEmail: string;
+}
+
+export interface TrocarSenhaRequest {
+  senhaAtual: string;
+  novaSenha: string;
 }
 
 export interface Inquilino {
@@ -122,15 +167,71 @@ export interface Inquilino {
   criadoEm: string;
 }
 
+// Catálogo dinâmico por proprietário — antes um union fixo
+// ('ELETRICA' | 'HIDRAULICA' | 'ESTRUTURAL' | 'OUTRO'), mesmo padrão de
+// TipoContaImovel.
+export interface CategoriaChamado {
+  id: string;
+  nome: string;
+}
+
 export interface Chamado {
   id: string;
   imovelId: string;
+  unidadeId: string;
+  unidadeNome: string | null;
   abertoPor: string;
-  categoria: string;
+  categoriaId: string;
+  categoriaNome: string;
   descricao: string;
   status: 'ABERTO' | 'EM_ANDAMENTO' | 'RESOLVIDO';
   abertoEm: string;
   resolvidoEm: string | null;
+}
+
+export interface NovoChamadoRequest {
+  categoriaId: string;
+  descricao: string;
+}
+
+export interface AtualizarChamadoRequest {
+  status: 'EM_ANDAMENTO' | 'RESOLVIDO';
+}
+
+export interface NovaCategoriaChamadoRequest {
+  nome: string;
+}
+
+// "TipoContaImovel" (não "TipoConta") pra não colidir com o TipoConta de
+// conta de acesso (PROPRIETARIO | INQUILINO) já definido acima. Catálogo
+// dinâmico por proprietário, não mais um union fixo.
+export interface TipoContaImovel {
+  id: string;
+  nome: string;
+}
+
+export interface Conta {
+  id: string;
+  unidadeId: string;
+  tipoContaId: string;
+  tipoContaNome: string;
+  vencimento: string;
+  valor: number;
+  status: 'PENDENTE' | 'PAGO';
+  responsavel: 'PROPRIETARIO' | 'INQUILINO';
+  contratoId: string | null;
+}
+
+export interface NovaContaRequest {
+  tipoContaId: string;
+  vencimento: string;
+  valor: number;
+  responsavel: 'PROPRIETARIO' | 'INQUILINO';
+  contratoId?: string | null;
+}
+
+export interface NovoTipoContaRequest {
+  nome: string;
 }
 
 export interface CandidaturaPendente {
@@ -147,14 +248,19 @@ export interface CandidaturaPendente {
   garantiaAceita: string | null;
   garantiaEscolhida: string | null;
   criadaEm: string;
+  // Micronaut Serde omite campos de lista vazios em objetos aninhados — vem
+  // ausente (não `[]`) quando a candidatura não tem nenhum documento ainda.
+  documentosGarantia?: ArquivoInfo[];
 }
 
 export interface ConviteInquilino {
   conviteId: string;
   token: string;
   imovelId: string;
+  enderecoImovel: string | null;
   unidadeId: string;
   proprietarioId: string;
+  nomeProprietario: string | null;
   conviteStatus: 'PENDENTE' | 'EM_ANALISE' | 'CONSUMIDO' | 'EXPIRADO' | 'RECUSADO' | 'REVOGADO';
   candidaturaId: string;
   candidaturaStatus: 'PENDENTE' | 'APROVADA' | 'RECUSADA';

@@ -8,10 +8,17 @@ Single git repo at the root (`https://github.com/joaohonorato/gim-gerenciador-im
 
 - `backend/` — Micronaut 4 + Java 21 REST API
 - `frontend/` — Expo 57 (React Native for Web) app
-- `run.ps1` — single entry point to run backend/frontend/e2e together or individually (`./run.ps1 -Target backend|frontend|e2e|all`); see the `run` skill in `.claude/skills/` before improvising a launch sequence.
+- `run.ps1` — single entry point to run backend/frontend/e2e together or individually (`./run.ps1 -Target backend|frontend|dev|e2e|all`); `all` (the default) always runs E2E too, which registers real accounts and can fire real outbound calls (e.g. Resend) — use `-Target dev` to just bring backend+frontend up and keep them running without E2E. See the `run` skill in `.claude/skills/` before improvising a launch sequence.
 - `docker-compose.yml` — local Postgres for dev (`docker compose up -d postgres`); env vars come from `.env.local` at the root, auto-loaded by `run.ps1`.
-- `docs/gerenciador-imoveis-initial-prompt.md` — the original product/architecture spec (data model, state machine, API surface, design system, legal constraints). Treat it as the source of truth for business rules; read it before implementing new domain behavior.
-- `docs/journey-map.md`, `docs/plano-execucao-ajustes.md` — product/UX journey mapping and the prioritized backlog derived from it (per-persona flows, KPIs, sequencing). Consult these when a task touches UX flow, error messaging, or prioritization, not just when adding a screen.
+- `docs/` — see [`docs/README.md`](docs/README.md) for the full index. Highlights:
+  - `docs/especificacao-produto.md` — the product/architecture spec (data model, state machine, API surface, design system, legal constraints). Treat it as the source of truth for business rules; read it before implementing new domain behavior.
+  - `docs/jornadas-e-backlog-tecnico.md` — engineering-facing journey mapping (4 personas incl. Admin/Suporte) and the prioritized backlog derived from it (per-persona flows, KPIs, sequencing, RACI).
+  - `docs/jornadas-e-prioridades-negocio.md` — business-facing counterpart scoped to the 3 revenue-relevant personas (Investidor/Proprietário/Inquilino), with a backlog prioritized by business impact and ready-to-use implementation prompts for still-open items. Prefer this over the engineering doc when the task is "what should we build next and why," not "how do we sequence a sprint."
+  - `docs/matriz-acesso-por-rota.md` — living route × persona access-control matrix for every REST controller. Update it whenever a route's authorization logic changes; consult it before adding a new `{id}`/`{imovelId}` route.
+  - `docs/catalogo-erros-api.md` — living `code → frontend message` catalog for every API error. Consult it before adding a new error code.
+  - `docs/gherkin/*.feature` — Gherkin scenarios per persona (pt-BR), tagged `@implementado`/`@pendente`, meant to become integration tests later. Check here before writing a new integration test for a persona flow.
+  - `docs/deploy-azure.md`, `docs/provisionamento-e-custos.md`, `docs/caso-de-negocio.md` — deploy runbook, infra/cost breakdown, and the product's business case. Not needed for day-to-day coding; read before infra or business-facing questions.
+  - `docs-antigos/` — superseded by `docs/`; historical only, do not read or edit.
 - `.claude/skills/` — project-specific Claude Code skills (`backend-usecase`, `expo-screen`, `run`) encoding the recipes below as invocable workflows.
 
 ## Commands
@@ -32,8 +39,10 @@ The `default` profile (`application.yml`) now points at real Postgres by default
 ### Frontend (run from `frontend/`)
 ```bash
 npm install
-npx expo start --web    # http://localhost:19006
+npx expo start --web    # http://localhost:8081
 ```
+Expo 57's web target runs on Metro's default port (`8081`), not the `19006` used by older Expo web (webpack) — confirmed by actually running it this session, not assumed from memory. The backend's CORS config (`application.yml`/`.env.local`) already allows both `CORS_ALLOWED_ORIGIN_1` (default `:19006`, kept for compatibility) and `CORS_ALLOWED_ORIGIN_2` (default `:8081`), so a normal `./run.ps1 -Target frontend` / `-Target all` needs no changes. If you start the backend directly with `./gradlew.bat run` instead of through `run.ps1`, remember `.env.local` is only auto-loaded by `run.ps1` — source it yourself (or export the vars) if you hit an unexplained CORS failure from the web frontend.
+
 Read `frontend/AGENTS.md` before writing Expo code — Expo 57 changed significantly from prior versions; check the versioned docs it points to rather than assuming older-Expo APIs.
 
 ### E2E (run from `frontend/`, requires backend + frontend running or let Playwright's `webServer` start them)
@@ -61,20 +70,20 @@ Login now uses email + password, but onboarding still starts from invite links. 
 
 `/auth/convites/proprietarios` creates owner onboarding invites. `/auth/convites/{token}/aceitar` finalizes the account with email/password. `/test-support/access-invites/{email}` (guarded by `app.test-support.enabled`, on by default in `test`/`default` profiles) exposes the latest access-invite token for E2E. `/test-support/magic-links/{email}` remains only as transitional legacy support.
 
-### Domain model shape (see `docs/gerenciador-imoveis-initial-prompt.md` §3–4 for full detail)
-`PROPRIETARIO 1—N IMOVEL 1—N UNIDADE 1—N CONTRATO`; `INQUILINO` and `CONTRATO` are independent (a tenant can hold multiple contracts). Every `IMOVEL` auto-creates one `UNIDADE` with `padrao=true` at creation — the API and UI operate on `imovelId` and resolve internally to the unidade padrão, keeping the door open for splitting a property into multiple rentable units later without an API redesign. `CONTRATO` has exactly one `GARANTIA` (never combined types), and approving a candidato validates no overlapping signed contrato period exists on the same unidade before creating one.
+### Domain model shape (see `docs/especificacao-produto.md` §3–4 for full detail)
+`PROPRIETARIO 1—N IMOVEL 1—N UNIDADE 1—N CONTRATO`; `INQUILINO` and `CONTRATO` are independent (a tenant can hold multiple contracts). Every `IMOVEL` auto-creates one `UNIDADE` with `padrao=true` at creation, and the owner can add more via `POST /imoveis/{id}/unidades` (single or batch — e.g. a terreno with several casas, each split into apartments) — `CONTRATO`/`CONVITE`/`CANDIDATURA`/`CONTA` are already keyed by `unidade_id`, not `imovel_id`, so multi-unit needed no data migration for those; `CHAMADO` did (`unidade_id` added, derived automatically from the opening tenant's contrato). `POST /imoveis/{imovelId}/convites` takes an optional `unidadeId` in the body — omitted resolves to the unidade padrão, so single-unit properties (still the common case) need no extra UI step. `CONTRATO` has exactly one `GARANTIA` (never combined types), and approving a candidato validates no overlapping signed contrato period exists on the same unidade before creating one.
 
 ### Frontend
 ```
 frontend/app/              # Expo Router (file-based routing); route groups: (auth), (owner), (tenant), (contrato)
 frontend/src/api/          # apiFetch client (client.ts) + AsyncStorage-backed session token (session.ts)
-frontend/src/design/       # Button, Card, StatusBadge, tokens (Bauhaus-style design system, see spec §6)
+frontend/src/design/       # Button, Card, StatusBadge, tokens (design system, see spec §6)
 frontend/e2e/              # Playwright golden-path spec + helpers
 ```
 - `apiFetch<T>` in `src/api/client.ts` auto-attaches the bearer token from `session` unless called with `{ auth: false }`, and throws `ApiException` (status + typed `ApiError`) on non-2xx responses — catch `ApiException` rather than raw fetch errors.
 - `EXPO_PUBLIC_API_URL` env var overrides the backend base URL (defaults to `http://localhost:8080`).
-- Design tokens (colors, fonts, spacing, radius) follow a Bauhaus aesthetic: flat surfaces, solid black borders, no shadows/gradients, status indicated by color **and** geometric shape (circle/square/triangle) for colorblind-safe reading — see the spec §6 before adding new UI states or colors.
+- Design tokens (colors, spacing, radius) live in `frontend/src/design/tokens.ts`: flat surfaces, light-gray borders, no shadows/gradients, no dark mode, no custom fonts (OS default per platform), no icon library — status indicated by color **and** the status name spelled out (`StatusBadge`: colored dot + label) so meaning never depends on color alone — see the spec §6 for the full current-state inventory before adding new UI states or colors.
 - See the `expo-screen` skill before adding or restyling a screen — it has the route-group/component/API-client conventions in one place.
 
 ## Scope notes
-The tenant (inquilino) side has real backend coverage for every flow and a real UI: `(tenant)/tenant/index.tsx` is a functional inquilino home (contracts, invites, owner/imóvel info, invite acceptance, logout). It's newer and thinner than the owner side — contract *signing* by the inquilino is still exercised via API in E2E (`AssinarContratoPorConvite` / `(contrato)/locacao/[token].tsx` covers the token-based sign screen, but broader tenant screens like document/garantia submission or chamados are still API/E2E-only, not full UI). Per `docs/plano-execucao-ajustes.md`, "jornada completa do inquilino no frontend" is the top-priority backlog item — check there before assuming a tenant flow is UI-complete. SMTP/invite delivery and real e-signature are still stubbed behind ports/interfaces (`AssinaturaProvider`, `ConviteLinkSender`/`ResendConviteLinkSender`) — see the README's "fora do escopo" table for what's stubbed vs. what needs real integration. Postgres is no longer stubbed: it's the real default datastore for local dev (see Commands above).
+The tenant (inquilino) side now has full UI parity with its backend coverage: `(tenant)/tenant/index.tsx` (home — contracts, invites, owner/imóvel info, invite acceptance, logout), `(tenant)/tenant/pagamentos.tsx` (own payments), `(tenant)/tenant/chamados.tsx` (open/track maintenance chamados — only for a tenant with an active contrato on the imóvel's unidade), `(tenant)/tenant/perfil.tsx` (profile/avatar), and `(contrato)/locacao/[token].tsx` / `(contrato)/[id]/revisar.tsx` for garantia/document submission and signing. Per `docs/jornadas-e-backlog-tecnico.md`, "jornada completa do inquilino no frontend" (rank 1) is done — check there before assuming otherwise. SMTP/invite delivery and real e-signature are still stubbed behind ports/interfaces (`AssinaturaProvider`, `ConviteLinkSender`/`ResendConviteLinkSender`) — see the README's "fora do escopo" table for what's stubbed vs. what needs real integration. Postgres is no longer stubbed: it's the real default datastore for local dev (see Commands above).

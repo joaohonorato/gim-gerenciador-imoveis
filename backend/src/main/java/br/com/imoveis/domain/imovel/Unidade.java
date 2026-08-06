@@ -23,6 +23,17 @@ public class Unidade {
         return new Unidade(UUID.randomUUID(), imovelId, "Imóvel completo", true, UnidadeStatus.VAGO);
     }
 
+    // Unidade adicional além da padrão automática — ver
+    // Imovel.adicionarUnidades. Usada quando o imóvel é subdividido (ex.:
+    // terreno com várias casas, cada uma com vários apartamentos).
+    public static Unidade nova(UUID imovelId, String nome) {
+        Objects.requireNonNull(imovelId, "imovelId obrigatório");
+        if (nome == null || nome.isBlank()) {
+            throw new IllegalArgumentException("nome obrigatório");
+        }
+        return new Unidade(UUID.randomUUID(), imovelId, nome.trim(), false, UnidadeStatus.VAGO);
+    }
+
     public static Unidade reconstituir(UUID id, UUID imovelId, String nome, boolean padrao, UnidadeStatus status) {
         Objects.requireNonNull(id, "id obrigatório");
         Objects.requireNonNull(imovelId, "imovelId obrigatório");

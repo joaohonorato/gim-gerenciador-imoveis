@@ -38,6 +38,11 @@ test('golden path — proprietário cadastra imóvel, inquilino assina, pagament
   await page.getByTestId('input-matricula').fill('E2E-001');
   await page.getByTestId('btn-salvar-imovel').click();
 
+  // Etapa 2 (unidades extras) — não usada no golden path, só confirma que
+  // aparece e pula direto pra lista.
+  await expect(page.getByTestId('btn-concluir-cadastro-imovel')).toBeVisible({ timeout: 10_000 });
+  await page.getByTestId('btn-concluir-cadastro-imovel').click();
+
   await expect(page).toHaveURL(/imoveis$/, { timeout: 10_000 });
 
   // 3. Pega o id do imóvel via API

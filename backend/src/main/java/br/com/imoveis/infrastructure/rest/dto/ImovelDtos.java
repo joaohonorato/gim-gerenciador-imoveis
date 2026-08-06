@@ -8,6 +8,7 @@ import br.com.imoveis.domain.imovel.Visibilidade;
 import io.micronaut.serde.annotation.Serdeable;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,6 +26,11 @@ public final class ImovelDtos {
     public record FiltroImoveisRequest(String busca, String cidade,
                                        UnidadeStatus status, TipoImovel tipoImovel) {}
 
+    // Mesmo endpoint cobre cadastro individual (lista de 1 nome) e em lote
+    // (vários de uma vez) — ver AdicionarUnidades.
+    @Serdeable
+    public record AdicionarUnidadesRequest(List<String> nomes) {}
+
     @Serdeable
     public record FotoResponse(UUID id, String url) {}
 
@@ -36,14 +42,14 @@ public final class ImovelDtos {
                                   Visibilidade visibilidade, List<UnidadeResumo> unidades,
                                   List<FotoResponse> fotos,
                                   Integer quartos, Integer banheiros, Integer vagas,
-                                  BigDecimal areaM2, BigDecimal iptu, String cep) {
+                                  BigDecimal areaM2, BigDecimal iptu, String cep, Instant criadoEm) {
         public static ImovelResponse from(Imovel i, List<FotoResponse> fotos) {
             return new ImovelResponse(i.id(), i.proprietarioId(), i.endereco(), i.cidade(),
                 i.matricula(), i.numero(), i.bairro(), i.complemento(), i.tipoImovel(),
                 i.enderecoCompleto(), i.visibilidade(),
                 i.unidades().stream().map(UnidadeResumo::from).toList(),
                 fotos,
-                i.quartos(), i.banheiros(), i.vagas(), i.areaM2(), i.iptu(), i.cep());
+                i.quartos(), i.banheiros(), i.vagas(), i.areaM2(), i.iptu(), i.cep(), i.criadoEm());
         }
     }
 

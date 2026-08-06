@@ -1,13 +1,31 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Image, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { apiFetch } from '@/api/client';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { apiFetch, getErrorMessage } from '@/api/client';
 import { Button } from '@/design/Button';
 import { Card } from '@/design/Card';
+import { ConfirmDialog } from '@/design/ConfirmDialog';
+import { Pill } from '@/design/Pill';
 import { StatusBadge } from '@/design/StatusBadge';
-import { Chamado, Contrato, Convite, Imovel, Pagamento } from '@/api/types';
-import { isFuturo } from '@/utils/pagamentos';
+import { UnidadesCard } from '@/design/UnidadesCard';
+import { useConfirm } from '@/hooks/useConfirm';
+import {
+  AtualizarChamadoRequest,
+  CategoriaChamado,
+  Chamado,
+  Conta,
+  Contrato,
+  Convite,
+  Imovel,
+  NovaContaRequest,
+  NovaCategoriaChamadoRequest,
+  NovoTipoContaRequest,
+  Pagamento,
+  TipoContaImovel,
+} from '@/api/types';
+import { isFuturo, isMesAtual } from '@/utils/pagamentos';
 
 const CONVITE_STATUS_COLOR: Record<string, string> = {
   PENDENTE: '#D97706',
@@ -25,6 +43,7 @@ const CHAMADO_STATUS_COLOR: Record<string, string> = {
 };
 
 export default function ImovelDetalheScreen() {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [imovel, setImovel] = useState<Imovel | null>(null);
@@ -32,33 +51,57 @@ export default function ImovelDetalheScreen() {
   const [contrato, setContrato] = useState<Contrato | null>(null);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [chamados, setChamados] = useState<Chamado[]>([]);
+  const [contas, setContas] = useState<Conta[]>([]);
+  const [tiposConta, setTiposConta] = useState<TipoContaImovel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [revogandoToken, setRevogandoToken] = useState<string | null>(null);
   const [enviandoFoto, setEnviandoFoto] = useState(false);
   const [removendoFotoId, setRemovendoFotoId] = useState<string | null>(null);
+  const confirmRemoverFoto = useConfirm();
+  const confirmRevogar = useConfirm();
+
+  const [atualizandoChamadoId, setAtualizandoChamadoId] = useState<string | null>(null);
+  const [categoriasChamado, setCategoriasChamado] = useState<CategoriaChamado[]>([]);
+  const [novaCategoriaNome, setNovaCategoriaNome] = useState('');
+  const [criandoCategoria, setCriandoCategoria] = useState(false);
+
+  const [tipoContaId, setTipoContaId] = useState<string | null>(null);
+  const [novoTipoContaNome, setNovoTipoContaNome] = useState('');
+  const [criandoTipoConta, setCriandoTipoConta] = useState(false);
+  const [responsavelConta, setResponsavelConta] = useState<'PROPRIETARIO' | 'INQUILINO'>('PROPRIETARIO');
+  const [vencimentoConta, setVencimentoConta] = useState('');
+  const [valorConta, setValorConta] = useState('');
+  const [salvandoConta, setSalvandoConta] = useState(false);
 
   const carregar = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     setError('');
     try {
-      const [imovelData, convitesData, contratosData, chamadosData] = await Promise.all([
+      const [imovelData, convitesData, contratosData, chamadosData, contasData, tiposContaData, categoriasChamadoData] = await Promise.all([
         apiFetch<Imovel>(`/imoveis/${id}`),
         apiFetch<Convite[]>(`/imoveis/${id}/convites`),
         apiFetch<Contrato[]>('/contratos'),
         apiFetch<Chamado[]>(`/imoveis/${id}/chamados`),
+        apiFetch<Conta[]>(`/imoveis/${id}/contas`),
+        apiFetch<TipoContaImovel[]>('/tipos-conta'),
+        apiFetch<CategoriaChamado[]>('/categorias-chamado'),
       ]);
       setImovel(imovelData);
       setConvites(convitesData);
       setChamados(chamadosData);
+      setContas(contasData);
+      setTiposConta(tiposContaData);
+      setTipoContaId((atual) => atual ?? tiposContaData[0]?.id ?? null);
+      setCategoriasChamado(categoriasChamadoData);
 
       const unidadePadraoId = imovelData.unidades?.find((u) => u.padrao)?.id ?? imovelData.unidades?.[0]?.id;
       const contratoDoImovel = contratosData.find((c) => c.unidadeId === unidadePadraoId) ?? null;
       setContrato(contratoDoImovel);
       setPagamentos(contratoDoImovel ? await apiFetch<Pagamento[]>(`/contratos/${contratoDoImovel.id}/pagamentos`) : []);
     } catch (e: any) {
-      setError(e.message ?? 'Não foi possível carregar o imóvel');
+      setError(getErrorMessage(e, 'Não foi possível carregar o imóvel'));
     } finally {
       setLoading(false);
     }
@@ -93,7 +136,7 @@ export default function ImovelDetalheScreen() {
       const atualizado = await apiFetch<Imovel>(`/imoveis/${id}/fotos`, { method: 'POST', body: formData });
       setImovel(atualizado);
     } catch (e: any) {
-      setError(e.message ?? 'Não foi possível enviar a foto');
+      setError(getErrorMessage(e, 'Não foi possível enviar a foto'));
     } finally {
       setEnviandoFoto(false);
     }
@@ -107,7 +150,7 @@ export default function ImovelDetalheScreen() {
       const atualizado = await apiFetch<Imovel>(`/imoveis/${id}/fotos/${fotoId}`, { method: 'DELETE' });
       setImovel(atualizado);
     } catch (e: any) {
-      setError(e.message ?? 'Não foi possível remover a foto');
+      setError(getErrorMessage(e, 'Não foi possível remover a foto'));
     } finally {
       setRemovendoFotoId(null);
     }
@@ -120,11 +163,122 @@ export default function ImovelDetalheScreen() {
       await apiFetch(`/convites/${token}/revogar`, { method: 'POST' });
       setConvites((atual) => atual.filter((c) => c.token !== token));
     } catch (e: any) {
-      setError(e.message ?? 'Não foi possível revogar o convite');
+      setError(getErrorMessage(e, 'Não foi possível revogar o convite'));
     } finally {
       setRevogandoToken(null);
     }
   }
+
+  function confirmarRemoverFoto(fotoId: string) {
+    confirmRemoverFoto.confirm({
+      title: 'Remover foto',
+      message: 'A foto será removida do anúncio do imóvel. Continuar?',
+      confirmLabel: 'Remover',
+      onConfirm: () => removerFoto(fotoId),
+    });
+  }
+
+  function confirmarRevogarConvite(token: string) {
+    confirmRevogar.confirm({
+      title: 'Revogar convite',
+      message: 'O convite será revogado e o link parará de funcionar. O inquilino não conseguirá mais aceitá-lo. Continuar?',
+      confirmLabel: 'Revogar',
+      onConfirm: () => revogarConvite(token),
+    });
+  }
+
+  async function criarTipoConta() {
+    if (!novoTipoContaNome.trim()) return;
+    setCriandoTipoConta(true);
+    setError('');
+    try {
+      const body: NovoTipoContaRequest = { nome: novoTipoContaNome.trim() };
+      const novo = await apiFetch<TipoContaImovel>('/tipos-conta', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+      setTiposConta((atual) => [...atual, novo]);
+      setTipoContaId(novo.id);
+      setNovoTipoContaNome('');
+    } catch (e: any) {
+      setError(getErrorMessage(e, 'Não foi possível criar o tipo de conta'));
+    } finally {
+      setCriandoTipoConta(false);
+    }
+  }
+
+  async function adicionarConta() {
+    if (!id) return;
+    const valor = Number(valorConta.replace(',', '.'));
+    if (!tipoContaId || !vencimentoConta.trim() || !Number.isFinite(valor) || valor <= 0) {
+      setError('Escolha o tipo de conta e preencha vencimento (AAAA-MM-DD) e valor antes de adicionar.');
+      return;
+    }
+    setSalvandoConta(true);
+    setError('');
+    try {
+      const body: NovaContaRequest = {
+        tipoContaId,
+        vencimento: vencimentoConta.trim(),
+        valor,
+        responsavel: responsavelConta,
+        contratoId: responsavelConta === 'INQUILINO' ? contrato?.id : undefined,
+      };
+      const nova = await apiFetch<Conta>(`/imoveis/${id}/contas`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+      setContas((atual) => [...atual, nova]);
+      setVencimentoConta('');
+      setValorConta('');
+    } catch (e: any) {
+      setError(getErrorMessage(e, 'Não foi possível adicionar a conta'));
+    } finally {
+      setSalvandoConta(false);
+    }
+  }
+
+  async function atualizarChamado(chamadoId: string, status: AtualizarChamadoRequest['status']) {
+    setAtualizandoChamadoId(chamadoId);
+    setError('');
+    try {
+      const body: AtualizarChamadoRequest = { status };
+      const atualizado = await apiFetch<Chamado>(`/chamados/${chamadoId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      });
+      setChamados((atual) => atual.map((c) => (c.id === atualizado.id ? atualizado : c)));
+    } catch (e: any) {
+      setError(getErrorMessage(e, 'Não foi possível atualizar o chamado'));
+    } finally {
+      setAtualizandoChamadoId(null);
+    }
+  }
+
+  async function criarCategoriaChamado() {
+    if (!novaCategoriaNome.trim()) return;
+    setCriandoCategoria(true);
+    setError('');
+    try {
+      const body: NovaCategoriaChamadoRequest = { nome: novaCategoriaNome.trim() };
+      const nova = await apiFetch<CategoriaChamado>('/categorias-chamado', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+      setCategoriasChamado((atual) => [...atual, nova]);
+      setNovaCategoriaNome('');
+    } catch (e: any) {
+      setError(getErrorMessage(e, 'Não foi possível criar a categoria de chamado'));
+    } finally {
+      setCriandoCategoria(false);
+    }
+  }
+
+  const totalInquilinoMes =
+    pagamentos.filter((p) => isMesAtual(p.vencimento)).reduce((soma, p) => soma + p.valor, 0) +
+    contas
+      .filter((c) => c.responsavel === 'INQUILINO' && c.contratoId === contrato?.id && isMesAtual(c.vencimento))
+      .reduce((soma, c) => soma + c.valor, 0);
 
   if (loading) {
     return (
@@ -147,7 +301,7 @@ export default function ImovelDetalheScreen() {
   const status = getStatus(imovel);
 
   return (
-    <ScrollView className="flex-1 bg-surface" contentContainerClassName="p-6 gap-4">
+    <ScrollView className="flex-1 bg-surface" contentContainerClassName="p-6 gap-4" contentContainerStyle={{ paddingTop: insets.top + 24 }}>
       <View className="flex-row items-center gap-4">
         <Button label="← Voltar" variant="outline" onPress={() => router.back()} />
         <View className="flex-1">
@@ -172,8 +326,10 @@ export default function ImovelDetalheScreen() {
                   style={{ width: 120, height: 120, borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB' }}
                 />
                 <Pressable
-                  onPress={() => removerFoto(foto.id)}
+                  onPress={() => confirmarRemoverFoto(foto.id)}
                   disabled={removendoFotoId === foto.id}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remover foto"
                   style={{
                     position: 'absolute', top: 6, right: 6,
                     width: 24, height: 24, borderRadius: 12,
@@ -221,6 +377,8 @@ export default function ImovelDetalheScreen() {
         />
       </Card>
 
+      <UnidadesCard imovel={imovel} onUpdated={setImovel} />
+
       <Card className="gap-3">
         <Text className="text-primary" style={{ fontSize: 16, fontWeight: '700' }}>
           Convites ({convites.length})
@@ -254,7 +412,7 @@ export default function ImovelDetalheScreen() {
                   <Button
                     label="Revogar"
                     variant="outline"
-                    onPress={() => revogarConvite(c.token)}
+                    onPress={() => confirmarRevogarConvite(c.token)}
                     loading={revogandoToken === c.token}
                     disabled={revogandoToken === c.token}
                   />
@@ -284,6 +442,14 @@ export default function ImovelDetalheScreen() {
               <Button label="Ver inquilino" variant="outline" onPress={() => router.push(`/inquilinos/${contrato.inquilinoId}`)} />
             </View>
 
+            <View
+              className="flex-row items-center justify-between rounded-xl px-4 py-3 mt-1"
+              style={{ borderWidth: 1.5, borderColor: '#2563EB', backgroundColor: '#EFF6FF' }}
+            >
+              <Text className="text-primary" style={{ fontSize: 13, fontWeight: '700' }}>Total do inquilino este mês</Text>
+              <Text style={{ color: '#2563EB', fontSize: 15, fontWeight: '800' }}>{formatCurrency(totalInquilinoMes)}</Text>
+            </View>
+
             {pagamentos.length > 0 ? (
               <View className="gap-2 mt-2">
                 <Text className="text-primary" style={{ fontSize: 14, fontWeight: '700' }}>Pagamentos ({pagamentos.length})</Text>
@@ -307,25 +473,179 @@ export default function ImovelDetalheScreen() {
 
       <Card className="gap-3">
         <Text className="text-primary" style={{ fontSize: 16, fontWeight: '700' }}>
+          Contas ({contas.length})
+        </Text>
+        {contas.length === 0 ? (
+          <Text className="text-muted">Nenhuma conta registrada para este imóvel ainda.</Text>
+        ) : (
+          contas.map((c) => (
+            <View
+              key={c.id}
+              className="flex-row items-center justify-between rounded-xl px-4 py-3"
+              style={{ borderWidth: 1, borderColor: '#E5E7EB' }}
+            >
+              <View>
+                <Text className="text-primary" style={{ fontWeight: '600' }}>{c.tipoContaNome}</Text>
+                <Text className="text-muted" style={{ fontSize: 13 }}>
+                  Ref. {formatDate(c.vencimento)} · {c.responsavel === 'INQUILINO' ? 'Inquilino' : 'Proprietário'}
+                </Text>
+              </View>
+              <View className="items-end gap-1">
+                <Text className="text-primary" style={{ fontSize: 13, fontWeight: '600' }}>{formatCurrency(c.valor)}</Text>
+                <StatusBadge status={c.status} />
+              </View>
+            </View>
+          ))
+        )}
+
+        <View className="gap-2 mt-2" style={{ borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: 12 }}>
+          <Text className="text-primary" style={{ fontSize: 14, fontWeight: '700' }}>Adicionar conta</Text>
+
+          <Text className="text-muted" style={{ fontSize: 12, fontWeight: '600' }}>Tipo de conta</Text>
+          <View className="flex-row gap-2" style={{ flexWrap: 'wrap' }}>
+            {tiposConta.map((tipo) => (
+              <Pill key={tipo.id} label={tipo.nome} selected={tipoContaId === tipo.id} onPress={() => setTipoContaId(tipo.id)} />
+            ))}
+          </View>
+          <View className="flex-row gap-2">
+            <TextInput
+              placeholder="Novo tipo de conta (ex. IPTU)"
+              placeholderTextColor="#9CA3AF"
+              value={novoTipoContaNome}
+              onChangeText={setNovoTipoContaNome}
+              className="bg-card px-4 py-3 text-primary rounded-xl"
+              style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14, flex: 1 }}
+            />
+            <Button label="Criar tipo" variant="outline" onPress={criarTipoConta} loading={criandoTipoConta} />
+          </View>
+
+          <Text className="text-muted" style={{ fontSize: 12, fontWeight: '600', marginTop: 8 }}>Responsável</Text>
+          <View className="flex-row gap-2">
+            <Pill
+              label="Proprietário"
+              selected={responsavelConta === 'PROPRIETARIO'}
+              onPress={() => setResponsavelConta('PROPRIETARIO')}
+            />
+            {contrato ? (
+              <Pill
+                label="Inquilino"
+                selected={responsavelConta === 'INQUILINO'}
+                onPress={() => setResponsavelConta('INQUILINO')}
+              />
+            ) : (
+              <Text className="text-muted" style={{ fontSize: 12, alignSelf: 'center' }}>
+                Sem contrato ativo pra atribuir ao inquilino
+              </Text>
+            )}
+          </View>
+
+          <TextInput
+            placeholder="Referência (AAAA-MM-DD)"
+            placeholderTextColor="#9CA3AF"
+            value={vencimentoConta}
+            onChangeText={setVencimentoConta}
+            className="bg-card px-4 py-3 text-primary rounded-xl"
+            style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
+          />
+          <TextInput
+            placeholder="Valor"
+            placeholderTextColor="#9CA3AF"
+            value={valorConta}
+            onChangeText={setValorConta}
+            keyboardType="numeric"
+            className="bg-card px-4 py-3 text-primary rounded-xl"
+            style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
+          />
+          <Button label="Adicionar conta" onPress={adicionarConta} loading={salvandoConta} />
+        </View>
+      </Card>
+
+      <Card className="gap-3">
+        <Text className="text-primary" style={{ fontSize: 16, fontWeight: '700' }}>
           Chamados ({chamados.length})
         </Text>
         {chamados.length === 0 ? (
           <Text className="text-muted">Nenhum chamado aberto para este imóvel.</Text>
         ) : (
           chamados.map((c) => (
-            <View key={c.id} className="gap-1 rounded-xl px-4 py-3" style={{ borderWidth: 1, borderColor: '#E5E7EB' }}>
+            <View key={c.id} className="gap-2 rounded-xl px-4 py-3" style={{ borderWidth: 1, borderColor: '#E5E7EB' }}>
               <View className="flex-row items-center justify-between gap-2">
-                <Text className="text-primary" style={{ fontWeight: '700' }}>{formatTipo(c.categoria)}</Text>
+                <Text className="text-primary" style={{ fontWeight: '700' }}>{c.categoriaNome}</Text>
                 <Text style={{ color: CHAMADO_STATUS_COLOR[c.status] ?? '#6B7280', fontSize: 12, fontWeight: '700' }}>
                   {formatTipo(c.status)}
                 </Text>
               </View>
               <Text className="text-muted" style={{ fontSize: 13 }}>{c.descricao}</Text>
-              <Text className="text-muted" style={{ fontSize: 12 }}>Aberto em {formatDate(c.abertoEm)}</Text>
+              <Text className="text-muted" style={{ fontSize: 12 }}>
+                {c.unidadeNome ? `${c.unidadeNome} · ` : ''}Aberto em {formatDate(c.abertoEm)}
+              </Text>
+              {c.status !== 'RESOLVIDO' ? (
+                <View className="flex-row gap-2 mt-1">
+                  {c.status === 'ABERTO' ? (
+                    <Button
+                      label="Marcar em andamento"
+                      variant="outline"
+                      onPress={() => atualizarChamado(c.id, 'EM_ANDAMENTO')}
+                      loading={atualizandoChamadoId === c.id}
+                      disabled={atualizandoChamadoId === c.id}
+                    />
+                  ) : null}
+                  <Button
+                    label="Marcar resolvido"
+                    onPress={() => atualizarChamado(c.id, 'RESOLVIDO')}
+                    loading={atualizandoChamadoId === c.id}
+                    disabled={atualizandoChamadoId === c.id}
+                  />
+                </View>
+              ) : null}
             </View>
           ))
         )}
+
+        <View className="gap-2 mt-2" style={{ borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: 12 }}>
+          <Text className="text-primary" style={{ fontSize: 14, fontWeight: '700' }}>Categorias de chamado</Text>
+          <View className="flex-row gap-2" style={{ flexWrap: 'wrap' }}>
+            {categoriasChamado.map((cat) => (
+              <View
+                key={cat.id}
+                className="px-[13px] py-2 rounded-lg"
+                style={{ borderWidth: 1.5, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF' }}
+              >
+                <Text style={{ color: '#374151', fontSize: 12.5, fontWeight: '600' }}>{cat.nome}</Text>
+              </View>
+            ))}
+          </View>
+          <View className="flex-row gap-2">
+            <TextInput
+              placeholder="Nova categoria (ex. Pintura)"
+              placeholderTextColor="#9CA3AF"
+              value={novaCategoriaNome}
+              onChangeText={setNovaCategoriaNome}
+              className="bg-card px-4 py-3 text-primary rounded-xl"
+              style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14, flex: 1 }}
+            />
+            <Button label="Criar categoria" variant="outline" onPress={criarCategoriaChamado} loading={criandoCategoria} />
+          </View>
+        </View>
       </Card>
+      <ConfirmDialog
+        visible={confirmRemoverFoto.visible}
+        title={confirmRemoverFoto.title}
+        message={confirmRemoverFoto.message}
+        confirmLabel={confirmRemoverFoto.confirmLabel}
+        loading={removendoFotoId !== null}
+        onConfirm={confirmRemoverFoto.accept}
+        onCancel={confirmRemoverFoto.cancel}
+      />
+      <ConfirmDialog
+        visible={confirmRevogar.visible}
+        title={confirmRevogar.title}
+        message={confirmRevogar.message}
+        confirmLabel={confirmRevogar.confirmLabel}
+        loading={revogandoToken !== null}
+        onConfirm={confirmRevogar.accept}
+        onCancel={confirmRevogar.cancel}
+      />
     </ScrollView>
   );
 }

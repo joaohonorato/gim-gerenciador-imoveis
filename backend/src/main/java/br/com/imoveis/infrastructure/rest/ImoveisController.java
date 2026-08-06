@@ -5,6 +5,7 @@ import br.com.imoveis.application.ports.ArquivoRepository;
 import br.com.imoveis.application.ports.ArquivoStorage;
 import br.com.imoveis.application.ports.ImovelRepository;
 import br.com.imoveis.application.usecase.AdicionarFotoImovel;
+import br.com.imoveis.application.usecase.AdicionarUnidades;
 import br.com.imoveis.application.usecase.CadastrarImovel;
 import br.com.imoveis.application.usecase.ListarImoveisDoProprietario;
 import br.com.imoveis.application.usecase.RemoverFotoImovel;
@@ -41,18 +42,20 @@ public class ImoveisController {
     private final ImovelRepository imovelRepository;
     private final AdicionarFotoImovel adicionarFotoImovel;
     private final RemoverFotoImovel removerFotoImovel;
+    private final AdicionarUnidades adicionarUnidades;
     private final ArquivoRepository arquivoRepository;
     private final ArquivoStorage arquivoStorage;
 
     public ImoveisController(CadastrarImovel cadastrarImovel, ListarImoveisDoProprietario listar,
                               ImovelRepository imovelRepository, AdicionarFotoImovel adicionarFotoImovel,
-                              RemoverFotoImovel removerFotoImovel, ArquivoRepository arquivoRepository,
-                              ArquivoStorage arquivoStorage) {
+                              RemoverFotoImovel removerFotoImovel, AdicionarUnidades adicionarUnidades,
+                              ArquivoRepository arquivoRepository, ArquivoStorage arquivoStorage) {
         this.cadastrarImovel = cadastrarImovel;
         this.listar = listar;
         this.imovelRepository = imovelRepository;
         this.adicionarFotoImovel = adicionarFotoImovel;
         this.removerFotoImovel = removerFotoImovel;
+        this.adicionarUnidades = adicionarUnidades;
         this.arquivoRepository = arquivoRepository;
         this.arquivoStorage = arquivoStorage;
     }
@@ -64,7 +67,7 @@ public class ImoveisController {
                                        @Nullable @QueryValue UnidadeStatus status,
                                        @Nullable @QueryValue TipoImovel tipoImovel) {
         Principal p = CurrentPrincipal.require(req);
-        return listar.execute(p.proprietarioId()).stream()
+        return listar.execute(p.requireProprietarioId()).stream()
             .filter(i -> filtrarBusca(i, busca))
             .filter(i -> filtrarCidade(i, cidade))
             .filter(i -> status == null || i.unidadePadrao().status() == status)
@@ -77,7 +80,7 @@ public class ImoveisController {
     @Post(consumes = MediaType.APPLICATION_JSON, produces = MediaType.APPLICATION_JSON)
     public ImovelResponse criar(@Body NovoImovelRequest body, HttpRequest<?> req) {
         Principal p = CurrentPrincipal.require(req);
-        Imovel i = cadastrarImovel.execute(p.proprietarioId(), body.endereco(), body.cidade(), body.matricula(),
+        Imovel i = cadastrarImovel.execute(p.requireProprietarioId(), body.endereco(), body.cidade(), body.matricula(),
             body.numero(), body.bairro(), body.complemento(), body.tipoImovel(),
             body.quartos(), body.banheiros(), body.vagas(), body.areaM2(), body.iptu(), body.cep());
         return toResponse(i);
@@ -89,6 +92,16 @@ public class ImoveisController {
         Imovel imovel = imovelRepository.findById(id)
             .filter(i -> i.proprietarioId().equals(p.proprietarioId()))
             .orElseThrow(() -> new NaoEncontradoException("imóvel"));
+        return toResponse(imovel);
+    }
+
+    // Cadastro individual e em lote usam o mesmo endpoint — "individual" é só
+    // uma lista de 1 nome. Ver AdicionarUnidades/Imovel.adicionarUnidades.
+    @Status(HttpStatus.CREATED)
+    @Post(value = "/{id}/unidades", consumes = MediaType.APPLICATION_JSON, produces = MediaType.APPLICATION_JSON)
+    public ImovelResponse adicionarUnidades(@PathVariable UUID id, @Body AdicionarUnidadesRequest body, HttpRequest<?> req) {
+        Principal p = CurrentPrincipal.require(req);
+        Imovel imovel = adicionarUnidades.execute(id, p.requireProprietarioId(), body.nomes());
         return toResponse(imovel);
     }
 
