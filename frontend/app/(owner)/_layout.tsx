@@ -5,9 +5,16 @@ import { apiFetch } from '@/api/client';
 import { session } from '@/api/session';
 import { MeResponse } from '@/api/types';
 import { colors } from '@/design/tokens';
+import { PushPrimerModal } from '@/design/PushPrimerModal';
+import { Sidebar, SidebarToggle, SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_EXPANDED_WIDTH } from '@/design/Sidebar';
+import { usePushPrimer } from '@/hooks/usePushPrimer';
+import { useIsDesktopWeb } from '@/hooks/useIsDesktopWeb';
 
 export default function OwnerLayout() {
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const pushPrimer = usePushPrimer();
+  const isDesktopWeb = useIsDesktopWeb();
 
   useEffect(() => {
     let mounted = true;
@@ -55,13 +62,20 @@ export default function OwnerLayout() {
     );
   }
 
-  return (
+  // Onda 3 item 6 (docs/jornadas-e-backlog-tecnico.md): em desktop web a
+  // <Tabs> continua sendo o navegador (mesmas rotas/telas, mesmo estado de
+  // navegação) — só a tab bar padrão (inferior, pensada pra mobile) é
+  // escondida via tabBarStyle: { display: 'none' }, e a <Sidebar/> assume a
+  // navegação visível ao lado. Em mobile/tablet nativo nada muda.
+  const tabs = (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border, borderTopWidth: 1 },
+        tabBarStyle: isDesktopWeb
+          ? { display: 'none' }
+          : { backgroundColor: colors.card, borderTopColor: colors.border, borderTopWidth: 1 },
         tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
       }}
     >
@@ -73,5 +87,29 @@ export default function OwnerLayout() {
       <Tabs.Screen name="inquilinos/[id]" options={{ href: null }} />
       <Tabs.Screen name="perfil/index" options={{ href: null }} />
     </Tabs>
+  );
+
+  return (
+    <>
+      {isDesktopWeb ? (
+        <View style={{ flex: 1, flexDirection: 'row', position: 'relative' }}>
+          <Sidebar collapsed={sidebarCollapsed} />
+          <View style={{ flex: 1 }}>{tabs}</View>
+          <SidebarToggle
+            collapsed={sidebarCollapsed}
+            onToggle={() => setSidebarCollapsed((c) => !c)}
+            left={sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH}
+          />
+        </View>
+      ) : (
+        tabs
+      )}
+      <PushPrimerModal
+        visible={pushPrimer.visible}
+        loading={pushPrimer.loading}
+        onAccept={pushPrimer.onAccept}
+        onDecline={pushPrimer.onDecline}
+      />
+    </>
   );
 }
