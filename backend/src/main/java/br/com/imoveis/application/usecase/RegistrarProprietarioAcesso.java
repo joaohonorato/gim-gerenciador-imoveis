@@ -32,6 +32,7 @@ public class RegistrarProprietarioAcesso {
     private final SessaoRepository sessaoRepository;
     private final TokenContaRepository tokenContaRepository;
     private final TokenContaEmailSender tokenContaEmailSender;
+    private final SemearCatalogosPadrao semearCatalogosPadrao;
     private final Clock clock;
 
     public RegistrarProprietarioAcesso(ProprietarioRepository proprietarioRepository,
@@ -40,6 +41,7 @@ public class RegistrarProprietarioAcesso {
                                        SessaoRepository sessaoRepository,
                                        TokenContaRepository tokenContaRepository,
                                        TokenContaEmailSender tokenContaEmailSender,
+                                       SemearCatalogosPadrao semearCatalogosPadrao,
                                        Clock clock) {
         this.proprietarioRepository = proprietarioRepository;
         this.contaAcessoRepository = contaAcessoRepository;
@@ -47,22 +49,26 @@ public class RegistrarProprietarioAcesso {
         this.sessaoRepository = sessaoRepository;
         this.tokenContaRepository = tokenContaRepository;
         this.tokenContaEmailSender = tokenContaEmailSender;
+        this.semearCatalogosPadrao = semearCatalogosPadrao;
         this.clock = clock;
     }
 
     public Result execute(String email, String senha, String nome, String cpfCnpj) {
         Email ownerEmail = new Email(email);
-        CpfCnpj ownerCpfCnpj = CpfCnpj.parse(cpfCnpj);
+        // Cadastro básico: CPF/CNPJ é opcional aqui, exigido só na hora de
+        // assinar contrato — ver CompletarCadastroProprietario.
+        CpfCnpj ownerCpfCnpj = (cpfCnpj == null || cpfCnpj.isBlank()) ? null : CpfCnpj.parse(cpfCnpj);
 
         if (contaAcessoRepository.findByEmail(ownerEmail).isPresent()) {
             throw new ConflitoException("já existe conta cadastrada para este e-mail");
         }
-        if (proprietarioRepository.findByCpfCnpj(ownerCpfCnpj).isPresent()) {
+        if (ownerCpfCnpj != null && proprietarioRepository.findByCpfCnpj(ownerCpfCnpj).isPresent()) {
             throw new ConflitoException("já existe proprietário cadastrado para este cpf/cnpj");
         }
 
         Proprietario proprietario = proprietarioRepository.save(
             Proprietario.cadastrar(nome, ownerCpfCnpj, ownerEmail, clock.now()));
+        semearCatalogosPadrao.execute(proprietario.id());
         ContaAcesso contaAcesso = contaAcessoRepository.save(
             ContaAcesso.vincularProprietario(ownerEmail, passwordHasher.hash(senha), proprietario.id(), clock.now()));
 

@@ -5,3 +5,9 @@ export function isFuturo(vencimento: string) {
   const hojeMes = hoje.getFullYear() * 12 + hoje.getMonth();
   return vencMes > hojeMes;
 }
+
+export function isMesAtual(vencimento: string) {
+  const venc = new Date(`${vencimento}T00:00:00`);
+  const hoje = new Date();
+  return venc.getFullYear() === hoje.getFullYear() && venc.getMonth() === hoje.getMonth();
+}

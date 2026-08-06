@@ -57,6 +57,8 @@ public class ContratoRepositoryAdapter implements ContratoRepository {
             e.setGarantiaVencimento(c.garantia().vencimento());
             e.setGarantiaDados(c.garantia().dadosEspecificos());
         }
+        e.setAlertaVencimentoEnviado(c.alertaVencimentoEnviado());
+        e.setAlertaGarantiaEnviado(c.alertaGarantiaEnviado());
         em.merge(e);
         return c;
     }
@@ -95,6 +97,19 @@ public class ContratoRepositoryAdapter implements ContratoRepository {
     }
 
     @Override
+    public List<Contrato> findParaAlertaVencimento(java.time.LocalDate hoje, java.time.LocalDate limite) {
+        return contratoJpa.findByStatusAssinaturaAndAlertaVencimentoEnviadoFalseAndDataFimBetween(
+                ContratoAssinaturaStatus.ASSINADO, hoje, limite).stream()
+            .map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<Contrato> findParaAlertaGarantia(java.time.LocalDate hoje, java.time.LocalDate limite) {
+        return contratoJpa.findByGarantiaTipoIsNotNullAndAlertaGarantiaEnviadoFalseAndGarantiaVencimentoBetween(hoje, limite).stream()
+            .map(this::toDomain).toList();
+    }
+
+    @Override
     public Pagamento savePagamento(Pagamento p) {
         PagamentoJpaEntity e = pagamentoJpa.findById(p.id()).orElseGet(PagamentoJpaEntity::new);
         e.setId(p.id());
@@ -114,7 +129,7 @@ public class ContratoRepositoryAdapter implements ContratoRepository {
 
     @Override
     public List<Pagamento> findPagamentosByContrato(UUID contratoId) {
-        return pagamentoJpa.findByContratoId(contratoId).stream().map(this::toDomainPagamento).toList();
+        return pagamentoJpa.findByContratoIdOrderByVencimentoAsc(contratoId).stream().map(this::toDomainPagamento).toList();
     }
 
     @Override
@@ -130,7 +145,7 @@ public class ContratoRepositoryAdapter implements ContratoRepository {
         EnumSet<ParteContrato> assinaturas = EnumSet.noneOf(ParteContrato.class);
         if (e.isAssinouProprietario()) assinaturas.add(ParteContrato.PROPRIETARIO);
         if (e.isAssinouInquilino()) assinaturas.add(ParteContrato.INQUILINO);
-        List<Pagamento> pagamentos = pagamentoJpa.findByContratoId(e.getId()).stream()
+        List<Pagamento> pagamentos = pagamentoJpa.findByContratoIdOrderByVencimentoAsc(e.getId()).stream()
             .map(this::toDomainPagamento).toList();
         Garantia garantia = e.getGarantiaTipo() == null ? null : Garantia.reconstituir(
             e.getGarantiaId(), e.getId(), e.getGarantiaTipo(),
@@ -138,7 +153,8 @@ public class ContratoRepositoryAdapter implements ContratoRepository {
         return Contrato.reconstituir(e.getId(), e.getUnidadeId(), e.getInquilinoId(), e.getProprietarioId(), e.getConviteId(),
             new Periodo(e.getDataInicio(), e.getDataFim()), e.getTipo(),
             new Dinheiro(e.getValorAluguel()), e.getIndiceReajuste(),
-            e.getStatusAssinatura(), assinaturas, garantia, pagamentos);
+            e.getStatusAssinatura(), assinaturas, garantia, pagamentos,
+            e.isAlertaVencimentoEnviado(), e.isAlertaGarantiaEnviado());
     }
 
     private Pagamento toDomainPagamento(PagamentoJpaEntity e) {

@@ -10,6 +10,7 @@ Single entry point: `run.ps1` at the repo root. Prefer it over improvising `grad
 ```powershell
 ./run.ps1 -Target backend                    # backend only, foreground, http://localhost:8080
 ./run.ps1 -Target frontend                   # frontend only, foreground, http://localhost:19006
+./run.ps1 -Target dev                        # backend + frontend in background, stays up, NO e2e — for normal local dev/use
 ./run.ps1 -Target e2e                        # starts backend+frontend in background, runs Playwright, tears down
 ./run.ps1 -Target e2e -ReuseExisting         # runs Playwright against services you already started yourself
 ./run.ps1 -Target all                        # backend + frontend + e2e, then tears down
@@ -17,6 +18,8 @@ Single entry point: `run.ps1` at the repo root. Prefer it over improvising `grad
 ./run.ps1 -NoInstall                         # skip `npm install` even if node_modules is missing
 ./run.ps1 -BackendPort 8080 -FrontendPort 19006
 ```
+
+**`dev` vs `all`:** `all` (and the default `-Target all` when no flag is given) always runs the E2E suite as part of bringing things up — that suite registers real accounts through the real backend and, if `RESEND_API_KEY` is set in `.env.local` (needed for real invite delivery during normal manual testing), it fires a real outbound call to Resend too. If you just want the app running to click around or test manually, use `-Target dev` instead — it starts backend+frontend and leaves them up (Ctrl+C to stop) without touching E2E or creating any test data.
 
 `run.ps1` auto-loads `.env.local` (repo root) into the environment for backend, frontend, and `docker compose` — edit that file rather than exporting vars by hand. It also brings up the local Postgres container (`docker compose up -d postgres`) before starting the backend; Docker Desktop must be running or this fails with a clear message.
 

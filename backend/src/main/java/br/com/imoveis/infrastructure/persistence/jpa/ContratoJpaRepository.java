@@ -16,4 +16,8 @@ public interface ContratoJpaRepository extends CrudRepository<ContratoJpaEntity,
     List<ContratoJpaEntity> findByUnidadeIdAndStatusAssinatura(UUID unidadeId, ContratoAssinaturaStatus status);
     Optional<ContratoJpaEntity> findByUnidadeIdAndInquilinoIdAndDataInicioAndDataFim(
         UUID unidadeId, UUID inquilinoId, LocalDate dataInicio, LocalDate dataFim);
+    List<ContratoJpaEntity> findByStatusAssinaturaAndAlertaVencimentoEnviadoFalseAndDataFimBetween(
+        ContratoAssinaturaStatus statusAssinatura, LocalDate inicio, LocalDate fim);
+    List<ContratoJpaEntity> findByGarantiaTipoIsNotNullAndAlertaGarantiaEnviadoFalseAndGarantiaVencimentoBetween(
+        LocalDate inicio, LocalDate fim);
 }

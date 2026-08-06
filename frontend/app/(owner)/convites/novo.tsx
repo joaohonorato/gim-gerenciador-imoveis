@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, ScrollView, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
-import { apiFetch } from '@/api/client';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { apiFetch, getErrorMessage } from '@/api/client';
 import { Imovel } from '@/api/types';
 import { Button } from '@/design/Button';
 import { Card } from '@/design/Card';
@@ -20,6 +21,7 @@ type Filtros = {
 };
 
 export default function NovoConviteScreen() {
+  const insets = useSafeAreaInsets();
   const [imoveis, setImoveis] = useState<Imovel[]>([]);
   const [todosImoveis, setTodosImoveis] = useState<Imovel[]>([]);
   const [loading, setLoading] = useState(false);
@@ -54,7 +56,7 @@ export default function NovoConviteScreen() {
       const data = await apiFetch<Imovel[]>(`/imoveis${query ? `?${query}` : ''}`);
       setImoveis(data);
     } catch (e: any) {
-      setError(e.message ?? 'Não foi possível carregar os imóveis');
+      setError(getErrorMessage(e, 'Não foi possível carregar os imóveis'));
     } finally {
       setLoading(false);
     }
@@ -63,7 +65,7 @@ export default function NovoConviteScreen() {
   const totalVagos = useMemo(() => imoveis.filter((i) => getStatus(i) === 'VAGO').length, [imoveis]);
 
   return (
-    <View className="flex-1 bg-surface">
+    <View className="flex-1 bg-surface" style={{ paddingTop: insets.top }}>
       <ScrollView className="max-h-96" contentContainerClassName="p-6 pb-3">
         <View className="flex-row items-center justify-between mb-3 gap-3">
           <Text className="text-primary" style={{ fontSize: 24, fontWeight: '800' }}>Novo convite de locação</Text>

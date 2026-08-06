@@ -3,6 +3,8 @@ package br.com.imoveis.application.usecase;
 import br.com.imoveis.application.ports.ConviteLinkSender;
 import br.com.imoveis.application.ports.ConviteRepository;
 import br.com.imoveis.application.ports.Clock;
+import br.com.imoveis.domain.auditoria.EntidadeAuditoria;
+import br.com.imoveis.domain.auditoria.TipoEventoAuditoria;
 import br.com.imoveis.domain.convite.CanalEnvioConvite;
 import br.com.imoveis.domain.convite.Convite;
 import br.com.imoveis.domain.convite.ConviteStatus;
@@ -13,13 +15,16 @@ public class EnviarLinkConvite {
 
     private final ConviteLinkSender conviteLinkSender;
     private final ConviteRepository conviteRepository;
+    private final RegistrarEventoAuditoria registrarEventoAuditoria;
     private final Clock clock;
 
     public EnviarLinkConvite(ConviteLinkSender conviteLinkSender,
                              ConviteRepository conviteRepository,
+                             RegistrarEventoAuditoria registrarEventoAuditoria,
                              Clock clock) {
         this.conviteLinkSender = conviteLinkSender;
         this.conviteRepository = conviteRepository;
+        this.registrarEventoAuditoria = registrarEventoAuditoria;
         this.clock = clock;
     }
 
@@ -71,5 +76,7 @@ public class EnviarLinkConvite {
             resultado.detalhe(),
             clock.now());
         conviteRepository.save(convite);
+        registrarEventoAuditoria.execute(EntidadeAuditoria.CONVITE, convite.id(), TipoEventoAuditoria.ENVIADO,
+            canal + " -> " + resultado.status() + (resultado.destino() != null ? " (" + resultado.destino() + ")" : ""));
     }
 }

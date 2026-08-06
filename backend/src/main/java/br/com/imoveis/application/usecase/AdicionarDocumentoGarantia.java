@@ -23,13 +23,17 @@ public class AdicionarDocumentoGarantia {
         this.clock = clock;
     }
 
-    public Arquivo execute(UUID contratoId, String nomeOriginal, String contentType, long tamanho, InputStream dados) {
+    // donoId é um contratoId (upload feito na revisão do contrato, já
+    // aprovado) ou uma candidaturaId (upload feito ainda na etapa de
+    // candidatura, antes de existir contrato) — ver ConvitesController e
+    // ContratosController para os dois pontos de entrada.
+    public Arquivo execute(UUID donoId, String nomeOriginal, String contentType, long tamanho, InputStream dados) {
         AdicionarDocumentoContrato.validar(contentType, tamanho);
 
-        String blobKey = contratoId + "/garantia/" + UUID.randomUUID() + AdicionarDocumentoContrato.extensao(contentType);
+        String blobKey = donoId + "/garantia/" + UUID.randomUUID() + AdicionarDocumentoContrato.extensao(contentType);
         storage.upload(TipoArquivo.DOCUMENTO_GARANTIA.container(), blobKey, dados, tamanho, contentType);
 
-        Arquivo arquivo = Arquivo.novo(TipoArquivo.DOCUMENTO_GARANTIA, contratoId, blobKey, nomeOriginal, contentType, tamanho, clock.now());
+        Arquivo arquivo = Arquivo.novo(TipoArquivo.DOCUMENTO_GARANTIA, donoId, blobKey, nomeOriginal, contentType, tamanho, clock.now());
         return arquivoRepository.save(arquivo);
     }
 }

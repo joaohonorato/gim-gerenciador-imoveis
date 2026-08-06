@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { apiFetch } from '@/api/client';
+import { apiFetch, getErrorMessage } from '@/api/client';
 import { Button } from '@/design/Button';
 
 export default function VerificarEmailScreen() {
@@ -21,7 +21,7 @@ export default function VerificarEmailScreen() {
         if (ativo) setStatus('sucesso');
       } catch (e: any) {
         if (!ativo) return;
-        setError(e.message ?? 'Não foi possível confirmar o e-mail — o link pode ter expirado.');
+        setError(getErrorMessage(e, 'Não foi possível confirmar o e-mail — o link pode ter expirado.'));
         setStatus('erro');
       }
     })();

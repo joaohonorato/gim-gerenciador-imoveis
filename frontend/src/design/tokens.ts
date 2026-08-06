@@ -19,3 +19,8 @@ export const spacing = {
 } as const;
 
 export const radius = 10;
+
+// Largura máxima do conteúdo dos hubs em desktop web (Onda 3 item 6,
+// docs/jornadas-e-backlog-tecnico.md) — evita o conteúdo esticar borda a
+// borda em janelas largas. Não afeta mobile/tablet nativo nem web estreito.
+export const maxContentWidth = 960;

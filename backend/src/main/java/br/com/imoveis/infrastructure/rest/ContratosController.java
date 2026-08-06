@@ -3,12 +3,16 @@ package br.com.imoveis.infrastructure.rest;
 import br.com.imoveis.application.exception.NaoEncontradoException;
 import br.com.imoveis.application.ports.ArquivoRepository;
 import br.com.imoveis.application.ports.ContratoRepository;
+import br.com.imoveis.application.ports.ConviteRepository;
+import br.com.imoveis.application.ports.ImovelRepository;
+import br.com.imoveis.application.ports.ProprietarioRepository;
 import br.com.imoveis.application.usecase.AdicionarDocumentoContrato;
 import br.com.imoveis.application.usecase.AdicionarDocumentoGarantia;
 import br.com.imoveis.application.usecase.AssinarContrato;
 import br.com.imoveis.domain.arquivo.Arquivo;
 import br.com.imoveis.domain.arquivo.TipoArquivo;
 import br.com.imoveis.domain.contrato.Contrato;
+import br.com.imoveis.domain.convite.Convite;
 import br.com.imoveis.infrastructure.auth.CurrentPrincipal;
 import br.com.imoveis.infrastructure.auth.Principal;
 import br.com.imoveis.infrastructure.rest.dto.ContratoDtos.*;
@@ -35,16 +39,25 @@ public class ContratosController {
     private final AdicionarDocumentoContrato adicionarDocumentoContrato;
     private final AdicionarDocumentoGarantia adicionarDocumentoGarantia;
     private final ArquivoRepository arquivoRepository;
+    private final ProprietarioRepository proprietarioRepository;
+    private final ImovelRepository imovelRepository;
+    private final ConviteRepository conviteRepository;
 
     public ContratosController(AssinarContrato assinar, ContratoRepository contratoRepository,
                                 AdicionarDocumentoContrato adicionarDocumentoContrato,
                                 AdicionarDocumentoGarantia adicionarDocumentoGarantia,
-                                ArquivoRepository arquivoRepository) {
+                                ArquivoRepository arquivoRepository,
+                                ProprietarioRepository proprietarioRepository,
+                                ImovelRepository imovelRepository,
+                                ConviteRepository conviteRepository) {
         this.assinar = assinar;
         this.contratoRepository = contratoRepository;
         this.adicionarDocumentoContrato = adicionarDocumentoContrato;
         this.adicionarDocumentoGarantia = adicionarDocumentoGarantia;
         this.arquivoRepository = arquivoRepository;
+        this.proprietarioRepository = proprietarioRepository;
+        this.imovelRepository = imovelRepository;
+        this.conviteRepository = conviteRepository;
     }
 
     @Get(produces = MediaType.APPLICATION_JSON)
@@ -53,7 +66,7 @@ public class ContratosController {
         List<Contrato> contratos = p.inquilinoId() != null
             ? contratoRepository.findByInquilinoId(p.inquilinoId())
             : contratoRepository.findByProprietarioId(p.requireProprietarioId());
-        return contratos.stream().map(ContratoResponse::from).toList();
+        return contratos.stream().map(this::toResponse).toList();
     }
 
     @Get(value = "/{id}", produces = MediaType.APPLICATION_JSON)
@@ -62,7 +75,7 @@ public class ContratosController {
         Contrato c = contratoRepository.findById(id)
             .filter(x -> isOwnerOrTenant(p, x))
             .orElseThrow(() -> new NaoEncontradoException("contrato"));
-        return ContratoResponse.from(c);
+        return toResponse(c);
     }
 
     @Post(value = "/{id}/assinar", consumes = MediaType.APPLICATION_JSON, produces = MediaType.APPLICATION_JSON)
@@ -84,7 +97,19 @@ public class ContratosController {
             }
         }
 
-        return ContratoResponse.from(assinar.execute(id, body.parte()));
+        return toResponse(assinar.execute(id, body.parte()));
+    }
+
+    private ContratoResponse toResponse(Contrato c) {
+        String nomeProprietario = proprietarioRepository.findById(c.proprietarioId())
+            .map(br.com.imoveis.domain.proprietario.Proprietario::nome)
+            .orElse(null);
+        br.com.imoveis.domain.imovel.Imovel imovel = imovelRepository.findUnidadeById(c.unidadeId())
+            .flatMap(unidade -> imovelRepository.findById(unidade.imovelId()))
+            .orElse(null);
+        String enderecoImovel = imovel == null ? null : imovel.enderecoCompleto();
+        UUID imovelId = imovel == null ? null : imovel.id();
+        return ContratoResponse.from(c, nomeProprietario, enderecoImovel, imovelId);
     }
 
     @Get(value = "/{id}/pagamentos", produces = MediaType.APPLICATION_JSON)
@@ -99,14 +124,30 @@ public class ContratosController {
     @Get(value = "/{id}/documentos", produces = MediaType.APPLICATION_JSON)
     public DocumentosContratoResponse documentos(@PathVariable UUID id, HttpRequest<?> req) {
         Principal p = CurrentPrincipal.require(req);
-        contratoRepository.findById(id)
+        Contrato contrato = contratoRepository.findById(id)
             .filter(x -> isOwnerOrTenant(p, x))
             .orElseThrow(() -> new NaoEncontradoException("contrato"));
 
         ArquivoInfoResponse documentoContrato = arquivoRepository.findByDonoIdAndTipo(id, TipoArquivo.DOCUMENTO_CONTRATO)
             .stream().findFirst().map(this::toArquivoInfo).orElse(null);
-        List<ArquivoInfoResponse> documentosGarantia = arquivoRepository.findByDonoIdAndTipo(id, TipoArquivo.DOCUMENTO_GARANTIA)
-            .stream().map(this::toArquivoInfo).toList();
+
+        // Documentos de garantia podem ter sido enviados em dois pontos do
+        // fluxo: aqui na revisão do contrato (donoId = contratoId) ou antes,
+        // ainda na candidatura, via /convites/{token}/garantia/documentos
+        // (donoId = candidaturaId, quando o contrato ainda não existia) — ver
+        // AdicionarDocumentoGarantia. Junta os dois pra não "sumir" com o que
+        // foi enviado na etapa anterior.
+        List<ArquivoInfoResponse> documentosGarantia = new java.util.ArrayList<>(
+            arquivoRepository.findByDonoIdAndTipo(id, TipoArquivo.DOCUMENTO_GARANTIA)
+                .stream().map(this::toArquivoInfo).toList());
+        if (contrato.conviteId() != null) {
+            conviteRepository.findById(contrato.conviteId())
+                .map(Convite::candidaturaId)
+                .filter(java.util.Objects::nonNull)
+                .ifPresent(candidaturaId -> documentosGarantia.addAll(
+                    arquivoRepository.findByDonoIdAndTipo(candidaturaId, TipoArquivo.DOCUMENTO_GARANTIA)
+                        .stream().map(this::toArquivoInfo).toList()));
+        }
         return new DocumentosContratoResponse(documentoContrato, documentosGarantia);
     }
 

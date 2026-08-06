@@ -7,6 +7,8 @@ import br.com.imoveis.application.ports.ContaAcessoRepository;
 import br.com.imoveis.application.ports.ConviteRepository;
 import br.com.imoveis.application.ports.InquilinoRepository;
 import br.com.imoveis.application.ports.PasswordHasher;
+import br.com.imoveis.domain.auditoria.EntidadeAuditoria;
+import br.com.imoveis.domain.auditoria.TipoEventoAuditoria;
 import br.com.imoveis.domain.auth.ContaAcesso;
 import br.com.imoveis.domain.convite.Candidatura;
 import br.com.imoveis.domain.convite.Convite;
@@ -24,17 +26,20 @@ public class AceitarConvite {
     private final InquilinoRepository inquilinoRepository;
     private final ContaAcessoRepository contaAcessoRepository;
     private final PasswordHasher passwordHasher;
+    private final RegistrarEventoAuditoria registrarEventoAuditoria;
     private final Clock clock;
 
     public AceitarConvite(ConviteRepository conviteRepository,
                            InquilinoRepository inquilinoRepository,
                            ContaAcessoRepository contaAcessoRepository,
                            PasswordHasher passwordHasher,
+                           RegistrarEventoAuditoria registrarEventoAuditoria,
                            Clock clock) {
         this.conviteRepository = conviteRepository;
         this.inquilinoRepository = inquilinoRepository;
         this.contaAcessoRepository = contaAcessoRepository;
         this.passwordHasher = passwordHasher;
+        this.registrarEventoAuditoria = registrarEventoAuditoria;
         this.clock = clock;
     }
 
@@ -42,6 +47,8 @@ public class AceitarConvite {
         Convite convite = conviteRepository.findByToken(token)
             .orElseThrow(() -> new NaoEncontradoException("convite"));
         if (convite.expirado(clock.now())) {
+            registrarEventoAuditoria.execute(EntidadeAuditoria.CONVITE, convite.id(),
+                TipoEventoAuditoria.TENTATIVA_COM_TOKEN_EXPIRADO, null);
             throw new ConflitoException("convite expirado");
         }
 
@@ -62,6 +69,8 @@ public class AceitarConvite {
 
         convite.marcarCandidaturaCriada(candidatura.id());
         conviteRepository.save(convite);
+        registrarEventoAuditoria.execute(EntidadeAuditoria.CONVITE, convite.id(),
+            TipoEventoAuditoria.CANDIDATURA_CRIADA, "cadastro novo de inquilino");
 
         return new Result(convite, candidatura, inquilino);
     }

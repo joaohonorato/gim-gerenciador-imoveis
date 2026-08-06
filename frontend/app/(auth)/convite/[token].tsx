@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { apiFetch } from '@/api/client';
+import { apiFetch, getErrorMessage } from '@/api/client';
 import { session } from '@/api/session';
 import { Button } from '@/design/Button';
 
@@ -11,6 +11,7 @@ type InviteResponse = {
   nome: string;
   documento: string;
   consumido: boolean;
+  expirado: boolean;
 };
 
 export default function ConviteScreen() {
@@ -21,6 +22,7 @@ export default function ConviteScreen() {
   const [loading, setLoading] = useState(false);
   const [loadingInvite, setLoadingInvite] = useState(true);
   const [error, setError] = useState('');
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -31,9 +33,19 @@ export default function ConviteScreen() {
         if (!active) return;
         setInvite(data);
         setEmail(data.email);
+        if (data.expirado) {
+          setError('Este convite expirou. Você pode se cadastrar diretamente, sem precisar de um novo convite.');
+        } else if (data.consumido) {
+          setError('Este convite já foi usado para concluir um cadastro. Se o link for seu, tente fazer login.');
+        }
       } catch (e: any) {
         if (!active) return;
-        setError(e.message ?? 'Não foi possível carregar o convite');
+        // /auth/convites/{token} devolve o mesmo código (AUTH_INVALID) tanto
+        // pra "token nunca existiu" quanto pra "expirado"/"já consumido" —
+        // aqui só sabemos que não deu pra carregar; a mensagem genérica já
+        // orienta a tentar de novo ou se cadastrar direto.
+        setNotFound(true);
+        setError(getErrorMessage(e, 'Não foi possível carregar o convite — ele pode não existir mais.'));
       } finally {
         if (active) setLoadingInvite(false);
       }
@@ -60,7 +72,7 @@ export default function ConviteScreen() {
       await session.set(res.sessionToken);
       router.replace('/imoveis');
     } catch (e: any) {
-      setError(e.message ?? 'Não foi possível concluir o cadastro');
+      setError(getErrorMessage(e, 'Não foi possível concluir o cadastro'));
     } finally {
       setLoading(false);
     }
@@ -74,6 +86,16 @@ export default function ConviteScreen() {
 
         {loadingInvite ? (
           <Text className="text-muted">Carregando convite...</Text>
+        ) : notFound || invite?.expirado || invite?.consumido ? (
+          // Convite morto (nunca existiu, expirou ou já foi usado): não faz
+          // sentido mostrar o formulário — ele só ia falhar no submit com um
+          // erro genérico. Em vez disso, orienta a saída real: cadastro
+          // direto (sempre disponível, não depende de convite) ou login.
+          <View className="gap-4">
+            {error ? <Text className="text-danger text-sm">{error}</Text> : null}
+            <Button label="Cadastrar como proprietário" onPress={() => router.replace('/register')} />
+            <Button label="Voltar ao login" onPress={() => router.replace('/login')} variant="outline" />
+          </View>
         ) : (
           <View className="gap-4">
             {invite ? (

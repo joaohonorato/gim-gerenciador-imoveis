@@ -26,11 +26,14 @@ public class Contrato {
     private final EnumSet<ParteContrato> assinaturas;
     private Garantia garantia;
     private final List<Pagamento> pagamentos;
+    private boolean alertaVencimentoEnviado;
+    private boolean alertaGarantiaEnviado;
 
     private Contrato(UUID id, UUID unidadeId, UUID inquilinoId, UUID proprietarioId, UUID conviteId, Periodo periodo,
                      TipoContrato tipo, Dinheiro valorAluguel, String indiceReajuste,
                      ContratoAssinaturaStatus status, EnumSet<ParteContrato> assinaturas,
-                     Garantia garantia, List<Pagamento> pagamentos) {
+                     Garantia garantia, List<Pagamento> pagamentos,
+                     boolean alertaVencimentoEnviado, boolean alertaGarantiaEnviado) {
         this.id = id;
         this.unidadeId = unidadeId;
         this.inquilinoId = inquilinoId;
@@ -44,6 +47,8 @@ public class Contrato {
         this.assinaturas = assinaturas;
         this.garantia = garantia;
         this.pagamentos = pagamentos;
+        this.alertaVencimentoEnviado = alertaVencimentoEnviado;
+        this.alertaGarantiaEnviado = alertaGarantiaEnviado;
     }
 
     public static Contrato novo(UUID unidadeId, UUID inquilinoId, UUID proprietarioId, UUID conviteId,
@@ -58,17 +63,18 @@ public class Contrato {
         return new Contrato(UUID.randomUUID(), unidadeId, inquilinoId, proprietarioId, conviteId, periodo,
             tipo, valorAluguel, indiceReajuste == null ? "IPCA" : indiceReajuste,
             ContratoAssinaturaStatus.PENDENTE, EnumSet.noneOf(ParteContrato.class),
-            null, new ArrayList<>());
+            null, new ArrayList<>(), false, false);
     }
 
     public static Contrato reconstituir(UUID id, UUID unidadeId, UUID inquilinoId, UUID proprietarioId, UUID conviteId,
                                          Periodo periodo, TipoContrato tipo, Dinheiro valorAluguel,
                                          String indiceReajuste, ContratoAssinaturaStatus status,
                                          EnumSet<ParteContrato> assinaturas, Garantia garantia,
-                                         List<Pagamento> pagamentos) {
+                                         List<Pagamento> pagamentos, boolean alertaVencimentoEnviado,
+                                         boolean alertaGarantiaEnviado) {
         return new Contrato(id, unidadeId, inquilinoId, proprietarioId, conviteId, periodo, tipo, valorAluguel,
             indiceReajuste, status, EnumSet.copyOf(assinaturas.isEmpty() ? EnumSet.noneOf(ParteContrato.class) : assinaturas),
-            garantia, new ArrayList<>(pagamentos));
+            garantia, new ArrayList<>(pagamentos), alertaVencimentoEnviado, alertaGarantiaEnviado);
     }
 
     public void definirGarantia(GarantiaTipo tipo, LocalDate vencimento, String dadosEspecificos) {
@@ -97,6 +103,18 @@ public class Contrato {
         }
     }
 
+    // Marcadas pelo job diário de alertas de vencimento (ver
+    // application/usecase/NotificarContratosProximosDoVencimento e
+    // NotificarGarantiasProximasDoVencimento) depois de notificar com
+    // sucesso — evita reenvio duplicado em execuções seguintes do job.
+    public void marcarAlertaVencimentoEnviado() {
+        this.alertaVencimentoEnviado = true;
+    }
+
+    public void marcarAlertaGarantiaEnviado() {
+        this.alertaGarantiaEnviado = true;
+    }
+
     public UUID id() { return id; }
     public UUID unidadeId() { return unidadeId; }
     public UUID inquilinoId() { return inquilinoId; }
@@ -110,4 +128,6 @@ public class Contrato {
     public EnumSet<ParteContrato> assinaturas() { return EnumSet.copyOf(assinaturas.isEmpty() ? EnumSet.noneOf(ParteContrato.class) : assinaturas); }
     public Garantia garantia() { return garantia; }
     public List<Pagamento> pagamentos() { return Collections.unmodifiableList(pagamentos); }
+    public boolean alertaVencimentoEnviado() { return alertaVencimentoEnviado; }
+    public boolean alertaGarantiaEnviado() { return alertaGarantiaEnviado; }
 }

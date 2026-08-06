@@ -4,9 +4,12 @@ import { Stack, router } from 'expo-router';
 import { apiFetch } from '@/api/client';
 import { session } from '@/api/session';
 import { MeResponse } from '@/api/types';
+import { PushPrimerModal } from '@/design/PushPrimerModal';
+import { usePushPrimer } from '@/hooks/usePushPrimer';
 
 export default function TenantLayout() {
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const pushPrimer = usePushPrimer();
 
   useEffect(() => {
     let mounted = true;
@@ -52,5 +55,15 @@ export default function TenantLayout() {
     );
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <>
+      <Stack screenOptions={{ headerShown: false }} />
+      <PushPrimerModal
+        visible={pushPrimer.visible}
+        loading={pushPrimer.loading}
+        onAccept={pushPrimer.onAccept}
+        onDecline={pushPrimer.onDecline}
+      />
+    </>
+  );
 }

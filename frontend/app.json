@@ -18,13 +18,18 @@
       "package": "br.com.imoveis",
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/icon.png"
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
       }
     },
     "web": {
       "bundler": "metro",
       "favicon": "./assets/favicon.png",
-      "output": "single"
+      "output": "single",
+      "name": "Gestão de Imóveis",
+      "shortName": "Gestão Imóveis",
+      "themeColor": "#2563EB",
+      "backgroundColor": "#F5F6F8"
     }
   }
 }

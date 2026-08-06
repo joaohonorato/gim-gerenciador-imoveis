@@ -2,6 +2,8 @@ package br.com.imoveis.application.usecase;
 
 import br.com.imoveis.application.exception.NaoEncontradoException;
 import br.com.imoveis.application.ports.ConviteRepository;
+import br.com.imoveis.domain.auditoria.EntidadeAuditoria;
+import br.com.imoveis.domain.auditoria.TipoEventoAuditoria;
 import br.com.imoveis.domain.convite.Candidatura;
 import br.com.imoveis.domain.convite.Convite;
 import io.micronaut.transaction.annotation.Transactional;
@@ -14,9 +16,11 @@ import java.util.UUID;
 public class RecusarCandidato {
 
     private final ConviteRepository conviteRepository;
+    private final RegistrarEventoAuditoria registrarEventoAuditoria;
 
-    public RecusarCandidato(ConviteRepository conviteRepository) {
+    public RecusarCandidato(ConviteRepository conviteRepository, RegistrarEventoAuditoria registrarEventoAuditoria) {
         this.conviteRepository = conviteRepository;
+        this.registrarEventoAuditoria = registrarEventoAuditoria;
     }
 
     public void execute(UUID candidaturaId, UUID proprietarioId) {
@@ -32,5 +36,6 @@ public class RecusarCandidato {
 
         convite.marcarRecusado();
         conviteRepository.save(convite);
+        registrarEventoAuditoria.execute(EntidadeAuditoria.CONVITE, convite.id(), TipoEventoAuditoria.RECUSADO, null);
     }
 }

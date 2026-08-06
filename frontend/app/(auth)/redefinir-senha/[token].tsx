@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { View, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { apiFetch } from '@/api/client';
+import { apiFetch, getErrorMessage } from '@/api/client';
 import { Button } from '@/design/Button';
+import { PasswordChecklist } from '@/design/PasswordChecklist';
+import { PasswordInput } from '@/design/PasswordInput';
+import { isPasswordValid } from '@/utils/password';
 
 export default function RedefinirSenhaScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
@@ -13,8 +16,8 @@ export default function RedefinirSenhaScreen() {
   const [sucesso, setSucesso] = useState(false);
 
   async function redefinir() {
-    if (novaSenha.length < 8) {
-      setError('A senha precisa ter pelo menos 8 caracteres.');
+    if (!isPasswordValid(novaSenha)) {
+      setError('A senha precisa ter pelo menos 8 caracteres, com letra e número.');
       return;
     }
     if (novaSenha !== confirmarSenha) {
@@ -31,7 +34,7 @@ export default function RedefinirSenhaScreen() {
       });
       setSucesso(true);
     } catch (e: any) {
-      setError(e.message ?? 'Não foi possível redefinir a senha — o link pode ter expirado.');
+      setError(getErrorMessage(e, 'Não foi possível redefinir a senha — o link pode ter expirado.'));
     } finally {
       setLoading(false);
     }
@@ -55,25 +58,24 @@ export default function RedefinirSenhaScreen() {
             </View>
           ) : (
             <View className="gap-4">
-              <TextInput
+              <PasswordInput
                 testID="input-nova-senha"
                 placeholder="Nova senha"
-                placeholderTextColor="#9CA3AF"
                 value={novaSenha}
                 onChangeText={setNovaSenha}
-                secureTextEntry
-                className="bg-card px-4 py-[13px] text-primary rounded-xl"
-                style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 15 }}
+                textContentType="newPassword"
+                autoComplete="new-password"
+                invalid={novaSenha.length > 0 && !isPasswordValid(novaSenha)}
               />
-              <TextInput
+              <PasswordChecklist value={novaSenha} />
+              <PasswordInput
                 testID="input-confirmar-senha"
                 placeholder="Confirmar nova senha"
-                placeholderTextColor="#9CA3AF"
                 value={confirmarSenha}
                 onChangeText={setConfirmarSenha}
-                secureTextEntry
-                className="bg-card px-4 py-[13px] text-primary rounded-xl"
-                style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 15 }}
+                textContentType="newPassword"
+                autoComplete="new-password"
+                invalid={confirmarSenha.length > 0 && confirmarSenha !== novaSenha}
               />
               {error ? <Text style={{ color: '#DC2626', fontSize: 13 }}>{error}</Text> : null}
               <Button testID="btn-redefinir" label="Redefinir senha" onPress={redefinir} loading={loading} />

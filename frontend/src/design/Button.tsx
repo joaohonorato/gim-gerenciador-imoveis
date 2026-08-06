@@ -1,15 +1,21 @@
 import { Pressable, Text, ActivityIndicator } from 'react-native';
+import { colors } from './tokens';
 
 interface Props {
   label: string;
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
-  variant?: 'primary' | 'outline' | 'dark';
+  variant?: 'primary' | 'outline' | 'dark' | 'danger';
   testID?: string;
 }
 
-const backgroundByVariant = { primary: '#2563EB', dark: '#111827', outline: '#FFFFFF' } as const;
+const backgroundByVariant = {
+  primary: colors.accent,
+  dark: colors.primary,
+  outline: colors.card,
+  danger: colors.danger,
+} as const;
 
 export function Button({ label, onPress, loading, disabled, variant = 'primary', testID }: Props) {
   const isOutline = variant === 'outline';
@@ -23,11 +29,11 @@ export function Button({ label, onPress, loading, disabled, variant = 'primary',
       style={{
         backgroundColor: backgroundByVariant[variant],
         borderWidth: isOutline ? 1.5 : 0,
-        borderColor: '#E5E7EB',
+        borderColor: colors.border,
       }}
     >
       {loading
-        ? <ActivityIndicator color={isDark ? '#fff' : '#111827'} />
+        ? <ActivityIndicator color={isDark ? '#fff' : colors.primary} />
         : <Text className={`text-[15px] font-bold ${isDark ? 'text-white' : 'text-primary'}`}>{label}</Text>
       }
     </Pressable>

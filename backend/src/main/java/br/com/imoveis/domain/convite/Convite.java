@@ -21,7 +21,7 @@ public class Convite {
     private final UUID unidadeId;
     private final UUID proprietarioId;
     private final String token;
-    private final Instant expiraEm;
+    private Instant expiraEm;
     private final CondicoesConvite condicoes;
     private ConviteStatus status;
     private UUID candidaturaId;
@@ -108,6 +108,19 @@ public class Convite {
 
     public boolean expirado(Instant agora) {
         return agora.isAfter(expiraEm);
+    }
+
+    // Estende o prazo sem trocar o token — o link que o inquilino já tem
+    // (e-mail/WhatsApp antigo) volta a funcionar, em vez de precisar gerar
+    // um convite novo do zero. Só faz sentido enquanto o convite ainda está
+    // PENDENTE: uma vez em análise (candidatura já criada), consumido,
+    // recusado ou revogado, o prazo original deixou de ser o que trava o
+    // fluxo — ver ConvitesController.reenviar.
+    public void renovar(Instant agora) {
+        if (status != ConviteStatus.PENDENTE) {
+            throw new IllegalStateException("convite não pode ser renovado no status atual: " + status);
+        }
+        this.expiraEm = agora.plus(7, ChronoUnit.DAYS);
     }
 
     public void marcarCandidaturaCriada(UUID candidaturaId) {

@@ -40,6 +40,20 @@ public class FakeContratoRepository implements ContratoRepository {
             .filter(c -> c.periodo().fim().equals(dataFim))
             .findFirst();
     }
+    @Override public List<Contrato> findParaAlertaVencimento(LocalDate hoje, LocalDate limite) {
+        return contratos.values().stream()
+            .filter(c -> c.statusAssinatura() == ContratoAssinaturaStatus.ASSINADO)
+            .filter(c -> !c.alertaVencimentoEnviado())
+            .filter(c -> !c.periodo().fim().isBefore(hoje) && !c.periodo().fim().isAfter(limite))
+            .toList();
+    }
+    @Override public List<Contrato> findParaAlertaGarantia(LocalDate hoje, LocalDate limite) {
+        return contratos.values().stream()
+            .filter(c -> c.garantia() != null)
+            .filter(c -> !c.alertaGarantiaEnviado())
+            .filter(c -> !c.garantia().vencimento().isBefore(hoje) && !c.garantia().vencimento().isAfter(limite))
+            .toList();
+    }
     @Override public Pagamento savePagamento(Pagamento p) { pagamentos.put(p.id(), p); return p; }
     @Override public Optional<Pagamento> findPagamentoById(UUID id) { return Optional.ofNullable(pagamentos.get(id)); }
     @Override public List<Pagamento> findPagamentosByContrato(UUID contratoId) {

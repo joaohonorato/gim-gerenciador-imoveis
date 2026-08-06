@@ -8,6 +8,8 @@ import br.com.imoveis.application.ports.ConviteAcessoRepository;
 import br.com.imoveis.application.ports.PasswordHasher;
 import br.com.imoveis.application.ports.ProprietarioRepository;
 import br.com.imoveis.application.ports.SessaoRepository;
+import br.com.imoveis.domain.auditoria.EntidadeAuditoria;
+import br.com.imoveis.domain.auditoria.TipoEventoAuditoria;
 import br.com.imoveis.domain.auth.ContaAcesso;
 import br.com.imoveis.domain.auth.ConviteAcesso;
 import br.com.imoveis.domain.proprietario.Proprietario;
@@ -19,6 +21,8 @@ import jakarta.inject.Singleton;
 import java.security.SecureRandom;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
+import java.util.Optional;
+import java.util.UUID;
 
 @Singleton
 @Transactional
@@ -31,6 +35,8 @@ public class AceitarConviteAcesso {
     private final ProprietarioRepository proprietarioRepository;
     private final PasswordHasher passwordHasher;
     private final SessaoRepository sessaoRepository;
+    private final SemearCatalogosPadrao semearCatalogosPadrao;
+    private final RegistrarEventoAuditoria registrarEventoAuditoria;
     private final Clock clock;
 
     public AceitarConviteAcesso(ConviteAcessoRepository conviteAcessoRepository,
@@ -38,12 +44,16 @@ public class AceitarConviteAcesso {
                                 ProprietarioRepository proprietarioRepository,
                                 PasswordHasher passwordHasher,
                                 SessaoRepository sessaoRepository,
+                                SemearCatalogosPadrao semearCatalogosPadrao,
+                                RegistrarEventoAuditoria registrarEventoAuditoria,
                                 Clock clock) {
         this.conviteAcessoRepository = conviteAcessoRepository;
         this.contaAcessoRepository = contaAcessoRepository;
         this.proprietarioRepository = proprietarioRepository;
         this.passwordHasher = passwordHasher;
         this.sessaoRepository = sessaoRepository;
+        this.semearCatalogosPadrao = semearCatalogosPadrao;
+        this.registrarEventoAuditoria = registrarEventoAuditoria;
         this.clock = clock;
     }
 
@@ -51,9 +61,13 @@ public class AceitarConviteAcesso {
         ConviteAcesso convite = conviteAcessoRepository.findByToken(token)
             .orElseThrow(() -> new AutenticacaoInvalidaException("convite inválido"));
         if (convite.consumido()) {
+            registrarEventoAuditoria.execute(EntidadeAuditoria.CONVITE_ACESSO, convite.id(),
+                TipoEventoAuditoria.TENTATIVA_COM_TOKEN_INVALIDO_OU_CONSUMIDO, "já consumido");
             throw new AutenticacaoInvalidaException("convite já consumido");
         }
         if (convite.expirado(clock.now())) {
+            registrarEventoAuditoria.execute(EntidadeAuditoria.CONVITE_ACESSO, convite.id(),
+                TipoEventoAuditoria.TENTATIVA_COM_TOKEN_EXPIRADO, null);
             throw new AutenticacaoInvalidaException("convite expirado");
         }
 
@@ -65,20 +79,28 @@ public class AceitarConviteAcesso {
             throw new ConflitoException("já existe conta cadastrada para este e-mail");
         }
 
-        Proprietario proprietario = proprietarioRepository.findByEmail(loginEmail)
-            .orElseGet(() -> proprietarioRepository.save(
+        Optional<Proprietario> proprietarioExistente = proprietarioRepository.findByEmail(loginEmail);
+        Proprietario proprietario;
+        if (proprietarioExistente.isPresent()) {
+            proprietario = proprietarioExistente.get();
+        } else {
+            proprietario = proprietarioRepository.save(
                 Proprietario.reconstituir(
-                    java.util.UUID.randomUUID(),
+                    UUID.randomUUID(),
                     convite.nome(),
                     CpfCnpj.parse(convite.documento()),
                     loginEmail,
                     convite.perfilProprietario(),
-                    clock.now())));
+                    clock.now(),
+                    null));
+            semearCatalogosPadrao.execute(proprietario.id());
+        }
 
         ContaAcesso contaAcesso = contaAcessoRepository.save(
             ContaAcesso.vincularProprietario(loginEmail, passwordHasher.hash(senha), proprietario.id(), clock.now()));
         convite.consumir();
         conviteAcessoRepository.save(convite);
+        registrarEventoAuditoria.execute(EntidadeAuditoria.CONVITE_ACESSO, convite.id(), TipoEventoAuditoria.ACEITO, null);
 
         String sessionToken = geraToken();
         sessaoRepository.save(new SessaoRepository.Sessao(

@@ -1,17 +1,19 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { apiFetch } from '@/api/client';
-import { session } from '@/api/session';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { apiFetch, getErrorMessage } from '@/api/client';
 import { Avatar } from '@/design/Avatar';
 import { Button } from '@/design/Button';
 import { Card } from '@/design/Card';
 import { StatusBadge } from '@/design/StatusBadge';
+import { useLogout } from '@/hooks/useLogout';
 import { Contrato, ConviteInquilino, MeResponse } from '@/api/types';
 
 type ViewMode = 'contrato' | 'proprietario' | 'imovel';
 
 export default function TenantHomeScreen() {
+  const insets = useSafeAreaInsets();
   const [me, setMe] = useState<MeResponse | null>(null);
   const [convites, setConvites] = useState<ConviteInquilino[]>([]);
   const [contratos, setContratos] = useState<Contrato[]>([]);
@@ -20,7 +22,7 @@ export default function TenantHomeScreen() {
   const [error, setError] = useState('');
   const [tokenInput, setTokenInput] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('contrato');
-  const [loggingOut, setLoggingOut] = useState(false);
+  const { logout, loggingOut } = useLogout();
 
   const carregar = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
@@ -41,7 +43,7 @@ export default function TenantHomeScreen() {
       setConvites(convitesData);
       setContratos(contratosData);
     } catch (e: any) {
-      setError(e.message ?? 'Não foi possível carregar sua área de inquilino');
+      setError(getErrorMessage(e, 'Não foi possível carregar sua área de inquilino'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -67,8 +69,8 @@ export default function TenantHomeScreen() {
     const map = new Map<string, Contrato[]>();
     for (const contrato of contratos) {
       const chave = viewMode === 'proprietario'
-        ? `Proprietário ${contrato.proprietarioId}`
-        : `Unidade ${contrato.unidadeId}`;
+        ? `Proprietário ${contrato.nomeProprietario ?? contrato.proprietarioId}`
+        : `Unidade ${contrato.enderecoImovel ?? contrato.unidadeId}`;
       const lista = map.get(chave) ?? [];
       lista.push(contrato);
       map.set(chave, lista);
@@ -76,19 +78,6 @@ export default function TenantHomeScreen() {
 
     return [...map.entries()].map(([titulo, itens]) => ({ titulo, itens }));
   }, [contratos, viewMode]);
-
-  async function logout() {
-    setLoggingOut(true);
-    try {
-      await apiFetch('/auth/logout', { method: 'POST' });
-    } catch {
-      // Cleanup local sempre deve ocorrer mesmo se backend falhar.
-    } finally {
-      await session.clear();
-      setLoggingOut(false);
-      router.replace('/login');
-    }
-  }
 
   if (loading) {
     return (
@@ -102,10 +91,16 @@ export default function TenantHomeScreen() {
     <ScrollView
       className="flex-1 bg-surface"
       contentContainerClassName="p-6 gap-4"
+      contentContainerStyle={{ paddingTop: insets.top + 24 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void carregar(true)} />}
     >
       <View className="flex-row items-start justify-between gap-3">
-        <Pressable onPress={() => router.push('/perfil')} className="flex-row items-center gap-3 flex-1">
+        <Pressable
+          onPress={() => router.push('/tenant/perfil')}
+          className="flex-row items-center gap-3 flex-1"
+          accessibilityRole="button"
+          accessibilityLabel="Abrir meu perfil"
+        >
           <Avatar url={me?.avatarUrl} nome={me?.nome} size={40} />
           <View className="flex-1">
             <Text className="text-primary" style={{ fontSize: 24, fontWeight: '800' }}>
@@ -124,6 +119,22 @@ export default function TenantHomeScreen() {
           <Text style={{ color: '#DC2626', fontSize: 13 }}>{error}</Text>
         </Card>
       ) : null}
+
+      <Card className="flex-row items-center justify-between gap-3">
+        <View className="flex-1">
+          <Text className="text-primary" style={{ fontSize: 16, fontWeight: '700' }}>Meus pagamentos</Text>
+          <Text className="text-muted" style={{ fontSize: 13 }}>Acompanhe status e vencimento dos aluguéis dos seus contratos.</Text>
+        </View>
+        <Button label="Ver pagamentos" variant="outline" onPress={() => router.push('/tenant/pagamentos')} />
+      </Card>
+
+      <Card className="flex-row items-center justify-between gap-3">
+        <View className="flex-1">
+          <Text className="text-primary" style={{ fontSize: 16, fontWeight: '700' }}>Chamados de manutenção</Text>
+          <Text className="text-muted" style={{ fontSize: 13 }}>Abra um chamado ou acompanhe os que já estão em andamento.</Text>
+        </View>
+        <Button label="Ver chamados" variant="outline" onPress={() => router.push('/tenant/chamados')} />
+      </Card>
 
       <Card>
         <Text className="text-primary mb-3" style={{ fontSize: 16, fontWeight: '700' }}>
@@ -151,11 +162,11 @@ export default function TenantHomeScreen() {
         <Text className="text-primary mb-3" style={{ fontSize: 16, fontWeight: '700' }}>
           Convites em andamento ({convitesPendentes.length})
         </Text>
-        {convites.length === 0 ? (
+        {convitesPendentes.length === 0 ? (
           <Text className="text-muted">Você ainda não possui convites vinculados à sua conta.</Text>
         ) : (
           <View className="gap-3">
-            {convites.map((item) => (
+            {convitesPendentes.map((item) => (
               <View key={item.candidaturaId} className="bg-card rounded-xl px-4 py-3 gap-2" style={{ borderWidth: 1, borderColor: '#E5E7EB' }}>
                 <View className="flex-row items-center justify-between gap-2">
                   <Text className="text-primary" style={{ fontWeight: '700' }}>
@@ -163,8 +174,8 @@ export default function TenantHomeScreen() {
                   </Text>
                   <StatusBadge status={item.candidaturaStatus === 'APROVADA' ? 'ASSINADO' : 'PENDENTE'} />
                 </View>
-                <Text className="text-muted">Imóvel: {item.imovelId}</Text>
-                <Text className="text-muted">Proprietário: {item.proprietarioId}</Text>
+                <Text className="text-muted">Imóvel: {item.enderecoImovel ?? item.imovelId}</Text>
+                <Text className="text-muted">Proprietário: {item.nomeProprietario ?? item.proprietarioId}</Text>
                 <Text className="text-muted">Período: {formatDate(item.dataInicio)} até {formatDate(item.dataFim)}</Text>
                 <Text className="text-muted">Aluguel: {formatCurrency(item.valorAluguel)}</Text>
                 {item.candidaturaStatus === 'PENDENTE' ? (

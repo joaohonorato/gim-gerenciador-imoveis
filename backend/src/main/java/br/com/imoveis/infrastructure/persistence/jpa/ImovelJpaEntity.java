@@ -5,6 +5,7 @@ import br.com.imoveis.domain.imovel.Visibilidade;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -61,6 +62,9 @@ public class ImovelJpaEntity {
     @Column
     private String cep;
 
+    @Column(name = "criado_em", nullable = false)
+    private Instant criadoEm;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -108,4 +112,7 @@ public class ImovelJpaEntity {
 
     public String getCep() { return cep; }
     public void setCep(String cep) { this.cep = cep; }
+
+    public Instant getCriadoEm() { return criadoEm; }
+    public void setCriadoEm(Instant criadoEm) { this.criadoEm = criadoEm; }
 }

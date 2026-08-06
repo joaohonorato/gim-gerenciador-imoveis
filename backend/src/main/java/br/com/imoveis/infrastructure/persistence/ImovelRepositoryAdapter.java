@@ -55,6 +55,7 @@ public class ImovelRepositoryAdapter implements ImovelRepository {
         e.setAreaM2(imovel.areaM2());
         e.setIptu(imovel.iptu());
         e.setCep(imovel.cep());
+        e.setCriadoEm(imovel.criadoEm());
         em.merge(e);
         for (Unidade u : imovel.unidades()) {
             saveUnidade(u);
@@ -100,11 +101,14 @@ public class ImovelRepositoryAdapter implements ImovelRepository {
     public Conta saveConta(Conta c) {
         ContaJpaEntity ce = contaJpa.findById(c.id()).orElseGet(ContaJpaEntity::new);
         ce.setId(c.id());
-        ce.setImovelId(c.imovelId());
-        ce.setTipo(c.tipo());
+        ce.setUnidadeId(c.unidadeId());
+        ce.setTipoContaId(c.tipoContaId());
         ce.setVencimento(c.vencimento());
         ce.setValor(c.valor().valor());
         ce.setStatus(c.status());
+        ce.setResponsavel(c.responsavel());
+        ce.setContratoId(c.contratoId());
+        ce.setAlertaEnviado(c.alertaEnviado());
         em.merge(ce);
         return c;
     }
@@ -116,7 +120,16 @@ public class ImovelRepositoryAdapter implements ImovelRepository {
 
     @Override
     public List<Conta> findContasByImovel(UUID imovelId) {
-        return contaJpa.findByImovelId(imovelId).stream().map(this::toDomainConta).toList();
+        List<UUID> unidadeIds = unidadeJpa.findByImovelId(imovelId).stream().map(UnidadeJpaEntity::getId).toList();
+        if (unidadeIds.isEmpty()) return List.of();
+        return contaJpa.findByUnidadeIdIn(unidadeIds).stream().map(this::toDomainConta).toList();
+    }
+
+    @Override
+    public List<Conta> findContasParaAlerta(java.time.LocalDate hoje, java.time.LocalDate limite) {
+        return contaJpa.findByStatusAndAlertaEnviadoFalseAndVencimentoBetween(
+                br.com.imoveis.domain.imovel.ContaStatus.PENDENTE, hoje, limite).stream()
+            .map(this::toDomainConta).toList();
     }
 
     private Imovel toDomain(ImovelJpaEntity e) {
@@ -124,14 +137,14 @@ public class ImovelRepositoryAdapter implements ImovelRepository {
         return Imovel.reconstituir(e.getId(), e.getProprietarioId(), e.getEndereco(), e.getCidade(),
             e.getMatricula(), e.getNumero(), e.getBairro(), e.getComplemento(), e.getTipoImovel(),
             e.getVisibilidade(), unidades,
-            e.getQuartos(), e.getBanheiros(), e.getVagas(), e.getAreaM2(), e.getIptu(), e.getCep());
+            e.getQuartos(), e.getBanheiros(), e.getVagas(), e.getAreaM2(), e.getIptu(), e.getCep(), e.getCriadoEm());
     }
 
     private Imovel toDomainWith(ImovelJpaEntity e, List<UnidadeJpaEntity> unidades) {
         return Imovel.reconstituir(e.getId(), e.getProprietarioId(), e.getEndereco(), e.getCidade(),
             e.getMatricula(), e.getNumero(), e.getBairro(), e.getComplemento(), e.getTipoImovel(),
             e.getVisibilidade(), unidades.stream().map(this::toDomainUnidade).toList(),
-            e.getQuartos(), e.getBanheiros(), e.getVagas(), e.getAreaM2(), e.getIptu(), e.getCep());
+            e.getQuartos(), e.getBanheiros(), e.getVagas(), e.getAreaM2(), e.getIptu(), e.getCep(), e.getCriadoEm());
     }
 
     private Unidade toDomainUnidade(UnidadeJpaEntity ue) {
@@ -139,7 +152,8 @@ public class ImovelRepositoryAdapter implements ImovelRepository {
     }
 
     private Conta toDomainConta(ContaJpaEntity ce) {
-        return Conta.reconstituir(ce.getId(), ce.getImovelId(), ce.getTipo(),
-            ce.getVencimento(), new Dinheiro(ce.getValor()), ce.getStatus());
+        return Conta.reconstituir(ce.getId(), ce.getUnidadeId(), ce.getTipoContaId(),
+            ce.getVencimento(), new Dinheiro(ce.getValor()), ce.getStatus(), ce.getResponsavel(), ce.getContratoId(),
+            ce.isAlertaEnviado());
     }
 }

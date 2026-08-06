@@ -15,7 +15,7 @@ public class ProprietarioJpaEntity {
     @Column(nullable = false)
     private String nome;
 
-    @Column(name = "cpf_cnpj", nullable = false, unique = true)
+    @Column(name = "cpf_cnpj", unique = true)
     private String cpfCnpj;
 
     @Column(nullable = false, unique = true)
@@ -26,6 +26,9 @@ public class ProprietarioJpaEntity {
 
     @Column(name = "criado_em", nullable = false)
     private Instant criadoEm;
+
+    @Column
+    private String telefone;
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -44,4 +47,7 @@ public class ProprietarioJpaEntity {
 
     public Instant getCriadoEm() { return criadoEm; }
     public void setCriadoEm(Instant criadoEm) { this.criadoEm = criadoEm; }
+
+    public String getTelefone() { return telefone; }
+    public void setTelefone(String telefone) { this.telefone = telefone; }
 }

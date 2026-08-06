@@ -18,6 +18,13 @@ public interface ContratoRepository {
     Optional<Contrato> findByUnidadeInquilinoEPeriodo(UUID unidadeId, UUID inquilinoId,
                                                       LocalDate dataInicio, LocalDate dataFim);
 
+    // Candidatos ao job diário de alertas de vencimento (ver
+    // application/usecase/NotificarContratosProximosDoVencimento e
+    // NotificarGarantiasProximasDoVencimento) — janela [hoje, limite], não
+    // data exata, e já filtrados pela flag de alerta ainda não enviado.
+    List<Contrato> findParaAlertaVencimento(LocalDate hoje, LocalDate limite);
+    List<Contrato> findParaAlertaGarantia(LocalDate hoje, LocalDate limite);
+
     Pagamento savePagamento(Pagamento pagamento);
     Optional<Pagamento> findPagamentoById(UUID id);
     List<Pagamento> findPagamentosByContrato(UUID contratoId);

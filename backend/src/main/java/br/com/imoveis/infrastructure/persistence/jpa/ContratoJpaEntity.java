@@ -67,6 +67,12 @@ public class ContratoJpaEntity {
     @Column(name = "garantia_dados", columnDefinition = "TEXT")
     private String garantiaDados;
 
+    @Column(name = "alerta_vencimento_enviado", nullable = false)
+    private boolean alertaVencimentoEnviado;
+
+    @Column(name = "alerta_garantia_enviado", nullable = false)
+    private boolean alertaGarantiaEnviado;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -117,4 +123,10 @@ public class ContratoJpaEntity {
 
     public String getGarantiaDados() { return garantiaDados; }
     public void setGarantiaDados(String garantiaDados) { this.garantiaDados = garantiaDados; }
+
+    public boolean isAlertaVencimentoEnviado() { return alertaVencimentoEnviado; }
+    public void setAlertaVencimentoEnviado(boolean alertaVencimentoEnviado) { this.alertaVencimentoEnviado = alertaVencimentoEnviado; }
+
+    public boolean isAlertaGarantiaEnviado() { return alertaGarantiaEnviado; }
+    public void setAlertaGarantiaEnviado(boolean alertaGarantiaEnviado) { this.alertaGarantiaEnviado = alertaGarantiaEnviado; }
 }

@@ -1,13 +1,15 @@
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { apiFetch } from '@/api/client';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { apiFetch, getErrorMessage } from '@/api/client';
 import { Button } from '@/design/Button';
 import { Card } from '@/design/Card';
 import { StatusBadge } from '@/design/StatusBadge';
 import { Contrato, Inquilino } from '@/api/types';
 
 export default function InquilinoDetalheScreen() {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [inquilino, setInquilino] = useState<Inquilino | null>(null);
@@ -27,7 +29,7 @@ export default function InquilinoDetalheScreen() {
       setInquilino(inquilinoData);
       setContratos(contratosData.filter((c) => c.inquilinoId === id));
     } catch (e: any) {
-      setError(e.message ?? 'Não foi possível carregar os dados do inquilino');
+      setError(getErrorMessage(e, 'Não foi possível carregar os dados do inquilino'));
     } finally {
       setLoading(false);
     }
@@ -54,7 +56,7 @@ export default function InquilinoDetalheScreen() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-surface" contentContainerClassName="p-6 gap-4">
+    <ScrollView className="flex-1 bg-surface" contentContainerClassName="p-6 gap-4" contentContainerStyle={{ paddingTop: insets.top + 24 }}>
       <View className="flex-row items-center gap-4">
         <Button label="← Voltar" variant="outline" onPress={() => router.back()} />
         <Text className="text-primary" style={{ fontSize: 22, fontWeight: '800' }}>{inquilino.nome}</Text>

@@ -11,7 +11,7 @@ Layout: `backend/src/main/java/br/com/imoveis/{domain,application,infrastructure
 
 - Construct aggregates via named factory methods, not public constructors: `Imovel.cadastrar(...)` for new instances, `Imovel.reconstituir(...)` for rehydrating from persistence. Follow the same split for any new aggregate.
 - State transitions are methods **on the aggregate** (`unidade.reservar()`, `candidatura.aprovar()`), not setters called from a use case. They must enforce invariants themselves and throw `TransicaoInvalidaException` (invalid state transition) or `IllegalStateException` (other invariant violations) — don't push that validation into the use case layer.
-- Check `docs/gerenciador-imoveis-initial-prompt.md` §3–4 before adding/changing an aggregate or transition — it's the source of truth for the data model and state machine, and lists invariants that are easy to silently break, e.g.:
+- Check `docs/especificacao-produto.md` §3–4 before adding/changing an aggregate or transition — it's the source of truth for the data model and state machine, and lists invariants that are easy to silently break, e.g.:
   - A `CONTRATO` has exactly one `GARANTIA`, never combined types.
   - Two signed `CONTRATO`s on the same `UNIDADE` can never have overlapping `data_inicio`–`data_fim` — validated at candidato approval time, not left to the DB.
   - Every `IMOVEL` auto-creates one `UNIDADE` with `padrao=true`; the API/UI address `imovelId` and resolve to that unidade internally — don't expose `unidadeId` on existing endpoints just because it exists under the hood.

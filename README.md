@@ -192,11 +192,9 @@ frontend/e2e/         # Playwright — golden-path.spec.ts
 
 ## O que não está neste MVP (costuras prontas para extensão)
 
-| Fora do escopo | Cotura pronta |
+| Fora do escopo | Costura pronta |
 |---|---|
-| SMTP real | interfaces de envio de convite e stubs de teste |
+| SMTP real | interfaces de envio de convite/alerta e stubs de teste — degrada pra log+skip sem `RESEND_API_KEY` |
 | Assinatura eletrônica | `AssinaturaProvider` interface + stub |
-| Postgres | `application-prod.yml` — só troca o driver |
-| iOS/Android | Expo SDK — `expo run:ios/android` adiciona |
-| Scheduler de alertas | Políticas de vencimento no domínio, scheduler separado |
-| Telas do inquilino | Backend 100% coberto; UI do golden path só proprietário |
+| iOS/Android (build/distribuição real) | Expo SDK — `expo run:ios/android` adiciona; app roda hoje via `--web` |
+| Push notification funcionando de ponta a ponta | Porta/adapter (`PushNotificationSender`/`ExpoPushNotificationSender`) e registro de token (`POST /auth/push-token`, `frontend/src/api/pushNotifications.ts`) prontos, mas `getExpoPushTokenAsync` exige um projeto EAS (`extra.eas.projectId` em `app.json`) que ainda não foi provisionado — sem ele, o registro falha silenciosamente (ver comentário no arquivo) e só o canal de e-mail funciona de fato hoje |

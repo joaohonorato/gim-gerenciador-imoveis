@@ -47,3 +47,20 @@ export async function escolherEEnviarDocumentoGarantia(contratoId: string): Prom
     body: buildFormData('documento', asset),
   });
 }
+
+// Upload feito ainda na etapa de candidatura (antes de existir contrato) —
+// rota pública por token, igual ao envio de tipo/dados da garantia, já que o
+// inquilino pode ainda não ter sessão autenticada neste ponto do fluxo.
+export async function escolherEEnviarDocumentoGarantiaPorConvite(token: string): Promise<ArquivoInfo | null> {
+  const asset = await escolherArquivo();
+  if (!asset) return null;
+  return apiFetch<ArquivoInfo>(`/convites/${token}/garantia/documentos`, {
+    method: 'POST',
+    auth: false,
+    body: buildFormData('documento', asset),
+  });
+}
+
+export async function listarDocumentosGarantiaPorConvite(token: string): Promise<ArquivoInfo[]> {
+  return apiFetch<ArquivoInfo[]>(`/convites/${token}/garantia/documentos`, { auth: false });
+}

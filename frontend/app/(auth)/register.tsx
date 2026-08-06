@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { View, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { apiFetch } from '@/api/client';
+import { apiFetch, getErrorMessage } from '@/api/client';
 import { session } from '@/api/session';
 import { Button } from '@/design/Button';
+import { PasswordChecklist } from '@/design/PasswordChecklist';
+import { PasswordInput } from '@/design/PasswordInput';
+import { formatCpfCnpj, validateCpfCnpj } from '@/utils/cpfCnpj';
+import { isPasswordValid } from '@/utils/password';
 
 export default function RegisterScreen() {
   const [username, setUsername] = useState('');
@@ -14,9 +18,11 @@ export default function RegisterScreen() {
   const [error, setError] = useState('');
 
   const documentoDigits = cpfCnpj.replace(/\D/g, '');
-  const senhaValida = senha.length >= 8 && /[A-Za-z]/.test(senha) && /\d/.test(senha);
+  const senhaValida = isPasswordValid(senha);
   const emailValido = /\S+@\S+\.\S+/.test(email.trim());
-  const documentoValido = validateCpfCnpj(documentoDigits);
+  // CPF/CNPJ é opcional no cadastro básico — se preenchido, precisa ser válido;
+  // vazio é permitido (fica pendente até assinar o primeiro contrato).
+  const documentoValido = documentoDigits.length === 0 || validateCpfCnpj(documentoDigits);
   const usernameValido = username.trim().length >= 3;
   const canSubmit = usernameValido && documentoValido && emailValido && senhaValida && !loading;
 
@@ -33,7 +39,7 @@ export default function RegisterScreen() {
         method: 'POST',
         body: JSON.stringify({
           username: username.trim(),
-          cpfCnpj: documentoDigits,
+          cpfCnpj: documentoDigits || undefined,
           email: email.trim(),
           senha,
         }),
@@ -42,7 +48,7 @@ export default function RegisterScreen() {
       await session.set(res.sessionToken);
       router.replace('/imoveis');
     } catch (e: any) {
-      setError(e.message ?? 'Falha ao cadastrar');
+      setError(getErrorMessage(e, 'Falha ao cadastrar'));
     } finally {
       setLoading(false);
     }
@@ -70,7 +76,7 @@ export default function RegisterScreen() {
           />
           <TextInput
             testID="input-register-cpf"
-            placeholder="CPF/CNPJ"
+            placeholder="CPF/CNPJ (opcional)"
             placeholderTextColor="#9CA3AF"
             value={cpfCnpj}
             onChangeText={onChangeCpfCnpj}
@@ -78,7 +84,9 @@ export default function RegisterScreen() {
             className="bg-card px-4 py-3 text-primary rounded-xl"
             style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
           />
-          <Text className="text-muted" style={{ fontSize: 12.5 }}>CPF/CNPJ válido (com dígitos verificadores).</Text>
+          <Text className="text-muted" style={{ fontSize: 12.5 }}>
+            Opcional agora — você pode completar depois no seu perfil. Necessário só para assinar contratos.
+          </Text>
           <TextInput
             testID="input-register-email"
             placeholder="E-mail"
@@ -87,20 +95,21 @@ export default function RegisterScreen() {
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
+            textContentType="emailAddress"
+            autoComplete="email"
             className="bg-card px-4 py-3 text-primary rounded-xl"
             style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
           />
-          <TextInput
+          <PasswordInput
             testID="input-register-password"
             placeholder="Senha (mínimo 8 caracteres)"
-            placeholderTextColor="#9CA3AF"
             value={senha}
             onChangeText={setSenha}
-            secureTextEntry
-            className="bg-card px-4 py-3 text-primary rounded-xl"
-            style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 14 }}
+            textContentType="newPassword"
+            autoComplete="new-password"
+            invalid={senha.length > 0 && !senhaValida}
           />
-          <Text className="text-muted" style={{ fontSize: 12.5 }}>Use pelo menos 8 caracteres, com letra e número.</Text>
+          <PasswordChecklist value={senha} />
           {error ? <Text style={{ color: '#DC2626', fontSize: 13 }}>{error}</Text> : null}
           <Button testID="btn-register-owner" label="Criar conta" onPress={register} loading={loading} disabled={!canSubmit} />
           <Button label="Voltar ao login" onPress={() => router.replace('/login')} variant="outline" />
@@ -108,66 +117,4 @@ export default function RegisterScreen() {
       </ScrollView>
     </KeyboardAvoidingView>
   );
-}
-
-function formatCpfCnpj(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 14);
-
-  if (digits.length <= 11) {
-    return digits
-      .replace(/^(\d{3})(\d)/, '$1.$2')
-      .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
-      .replace(/\.(\d{3})(\d)/, '.$1-$2');
-  }
-
-  return digits
-    .replace(/^(\d{2})(\d)/, '$1.$2')
-    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-    .replace(/\.(\d{3})(\d)/, '.$1/$2')
-    .replace(/(\/\d{4})(\d)/, '$1-$2');
-}
-
-function validateCpfCnpj(digits: string): boolean {
-  if (digits.length === 11) return validateCpf(digits);
-  if (digits.length === 14) return validateCnpj(digits);
-  return false;
-}
-
-function validateCpf(digits: string): boolean {
-  if (/^(\d)\1{10}$/.test(digits)) return false;
-
-  const d1 = calcCpfDigit(digits, 10);
-  const d2 = calcCpfDigit(digits, 11);
-
-  return d1 === Number(digits[9]) && d2 === Number(digits[10]);
-}
-
-function calcCpfDigit(digits: string, startWeight: number): number {
-  let sum = 0;
-  for (let i = 0; i < startWeight - 1; i += 1) {
-    sum += Number(digits[i]) * (startWeight - i);
-  }
-  const mod = (sum * 10) % 11;
-  return mod === 10 ? 0 : mod;
-}
-
-function validateCnpj(digits: string): boolean {
-  if (/^(\d)\1{13}$/.test(digits)) return false;
-
-  const w1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-  const w2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-
-  const d1 = calcCnpjDigit(digits, w1);
-  const d2 = calcCnpjDigit(digits, w2);
-
-  return d1 === Number(digits[12]) && d2 === Number(digits[13]);
-}
-
-function calcCnpjDigit(digits: string, weights: number[]): number {
-  let sum = 0;
-  for (let i = 0; i < weights.length; i += 1) {
-    sum += Number(digits[i]) * weights[i];
-  }
-  const mod = sum % 11;
-  return mod < 2 ? 0 : 11 - mod;
 }

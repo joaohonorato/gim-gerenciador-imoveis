@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { session } from './session';
 import { ApiError } from './types';
 
@@ -26,6 +27,54 @@ export class ApiNetworkException extends Error {
   }
 }
 
+// Códigos de erro que a API pode devolver — ver docs/catalogo-erros-api.md
+// pra origem de cada um (qual exceção do backend gera qual código) e a razão
+// da mensagem escolhida.
+export type ApiErrorCode =
+  | 'NOT_FOUND'
+  | 'CONFLICT'
+  | 'AUTH_INVALID'
+  | 'CADASTRO_INCOMPLETO'
+  | 'INVALID_TRANSITION'
+  | 'INVALID_INPUT'
+  | 'INVALID_STATE'
+  | 'VALIDATION_ERROR';
+
+const ERROR_MESSAGES: Record<ApiErrorCode, string> = {
+  NOT_FOUND: 'Não encontramos o que você está procurando. Pode ter sido removido, ou você não tem acesso a ele.',
+  CONFLICT: 'Já existe um registro com esses dados, ou a ação não é mais possível nesse contexto. Confira as informações e tente novamente.',
+  AUTH_INVALID: 'Não foi possível confirmar suas credenciais. Verifique login e senha, ou faça login novamente.',
+  CADASTRO_INCOMPLETO: 'Complete seu cadastro (CPF/CNPJ) no seu perfil antes de continuar.',
+  INVALID_TRANSITION: 'Essa ação não é permitida no momento — o item pode já ter mudado de status. Atualize a página e tente novamente.',
+  INVALID_INPUT: 'Alguns dados enviados são inválidos. Revise as informações e tente novamente.',
+  INVALID_STATE: 'Essa ação não pode ser concluída agora. Verifique se as etapas anteriores foram concluídas e tente novamente.',
+  VALIDATION_ERROR: 'Verifique os campos preenchidos e tente novamente.',
+};
+
+const NETWORK_ERROR_MESSAGES: Record<ApiNetworkErrorCode, string> = {
+  NETWORK_ERROR: 'Não foi possível conectar. Verifique sua internet e tente novamente.',
+  TIMEOUT: 'A requisição demorou demais para responder. Tente novamente.',
+  REQUEST_ABORTED: 'A requisição foi cancelada.',
+};
+
+const DEFAULT_ERROR_MESSAGE = 'Não foi possível completar a ação. Tente novamente.';
+
+// Ponto único pra transformar qualquer erro de apiFetch numa mensagem
+// orientada a ação pro usuário — use no catch de toda tela em vez de
+// `e.message ?? 'mensagem genérica'`. `error.error.code` (ApiException) e
+// `error.code` (ApiNetworkException) continuam disponíveis pra quem
+// precisar de lógica condicional além da mensagem (ex.: redirecionar pro
+// login em AUTH_INVALID).
+export function getErrorMessage(error: unknown, fallback: string = DEFAULT_ERROR_MESSAGE): string {
+  if (error instanceof ApiException) {
+    return ERROR_MESSAGES[error.error.code as ApiErrorCode] ?? fallback;
+  }
+  if (error instanceof ApiNetworkException) {
+    return NETWORK_ERROR_MESSAGES[error.code] ?? fallback;
+  }
+  return fallback;
+}
+
 class RequestTimeoutError extends Error {}
 
 export interface ApiRequestOptions extends RequestInit {
@@ -33,6 +82,17 @@ export interface ApiRequestOptions extends RequestInit {
   timeoutMs?: number;
   retry?: number;
   retryDelayMs?: number;
+  // Por padrão, um 401 numa chamada autenticada é tratado como "a sessão
+  // morreu": limpa o token local e redireciona pro login — rank 8
+  // (docs/jornadas-e-backlog-tecnico.md), pra garantir que todo ponto onde
+  // a sessão pode terminar se comporte igual, em vez de cada tela decidir
+  // isso ad-hoc (só uma tela fazia isso antes desta mudança). Uma minoria
+  // de chamadas devolve 401 (AUTH_INVALID) por um motivo que não tem nada a
+  // ver com a validade da sessão — ex.: POST /auth/senha/trocar com a senha
+  // atual errada, onde a sessão continua perfeitamente válida. Passe
+  // `preserveSessionOn401: true` nesses casos pra deixar a própria tela
+  // tratar o erro (getErrorMessage) sem derrubar quem está logado.
+  preserveSessionOn401?: boolean;
 }
 
 export async function apiFetch<T>(
@@ -68,8 +128,9 @@ export async function apiFetch<T>(
         try {
           error = await res.json();
         } catch {}
-        if (res.status === 401 && init?.auth !== false) {
+        if (res.status === 401 && init?.auth !== false && !init?.preserveSessionOn401) {
           await session.clear();
+          router.replace('/login');
         }
         throw new ApiException(res.status, error);
       }

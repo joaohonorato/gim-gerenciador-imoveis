@@ -1,6 +1,7 @@
 package br.com.imoveis.infrastructure.rest;
 
 import br.com.imoveis.application.exception.AutenticacaoInvalidaException;
+import br.com.imoveis.application.exception.CadastroIncompletoException;
 import br.com.imoveis.application.exception.ConflitoException;
 import br.com.imoveis.application.exception.NaoEncontradoException;
 import br.com.imoveis.domain.imovel.TransicaoInvalidaException;
@@ -34,6 +35,12 @@ public class GlobalErrorHandler {
     public HttpResponse<ErrorResponse> auth(HttpRequest<?> req, AutenticacaoInvalidaException ex) {
         return HttpResponse.<ErrorResponse>status(io.micronaut.http.HttpStatus.UNAUTHORIZED)
             .body(new ErrorResponse("AUTH_INVALID", ex.getMessage()));
+    }
+
+    @Error(global = true, exception = CadastroIncompletoException.class)
+    public HttpResponse<ErrorResponse> cadastroIncompleto(HttpRequest<?> req, CadastroIncompletoException ex) {
+        return HttpResponse.<ErrorResponse>status(io.micronaut.http.HttpStatus.UNPROCESSABLE_ENTITY)
+            .body(new ErrorResponse("CADASTRO_INCOMPLETO", ex.getMessage()));
     }
 
     @Error(global = true, exception = TransicaoInvalidaException.class)

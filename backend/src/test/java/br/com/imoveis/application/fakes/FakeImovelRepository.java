@@ -2,9 +2,11 @@ package br.com.imoveis.application.fakes;
 
 import br.com.imoveis.application.ports.ImovelRepository;
 import br.com.imoveis.domain.imovel.Conta;
+import br.com.imoveis.domain.imovel.ContaStatus;
 import br.com.imoveis.domain.imovel.Imovel;
 import br.com.imoveis.domain.imovel.Unidade;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +33,17 @@ public class FakeImovelRepository implements ImovelRepository {
     @Override public Conta saveConta(Conta c) { contas.put(c.id(), c); return c; }
     @Override public Optional<Conta> findContaById(UUID id) { return Optional.ofNullable(contas.get(id)); }
     @Override public List<Conta> findContasByImovel(UUID imovelId) {
-        return new ArrayList<>(contas.values().stream().filter(c -> c.imovelId().equals(imovelId)).toList());
+        List<UUID> unidadeIds = unidades.values().stream()
+            .filter(u -> u.imovelId().equals(imovelId))
+            .map(Unidade::id)
+            .toList();
+        return new ArrayList<>(contas.values().stream().filter(c -> unidadeIds.contains(c.unidadeId())).toList());
+    }
+    @Override public List<Conta> findContasParaAlerta(LocalDate hoje, LocalDate limite) {
+        return contas.values().stream()
+            .filter(c -> c.status() == ContaStatus.PENDENTE)
+            .filter(c -> !c.alertaEnviado())
+            .filter(c -> !c.vencimento().isBefore(hoje) && !c.vencimento().isAfter(limite))
+            .toList();
     }
 }

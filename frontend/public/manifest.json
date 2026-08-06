@@ -1,0 +1,17 @@
+{
+  "name": "Gestão de Imóveis",
+  "short_name": "Gestão Imóveis",
+  "description": "Cadastre imóveis, acompanhe contratos e assinaturas em um só lugar.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F6F8",
+  "theme_color": "#2563EB",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('backend', 'frontend', 'e2e', 'all')]
+    [ValidateSet('backend', 'frontend', 'e2e', 'all', 'dev')]
     [string]$Target = 'all',
     [switch]$ReuseExisting,
     [switch]$NoInstall,
@@ -203,6 +203,23 @@ function Run-E2E {
     }
 }
 
+function Run-Dev {
+    $backendProcess = $null
+    $frontendProcess = $null
+    try {
+        $backendProcess = Start-BackendBackground
+        $frontendProcess = Start-FrontendBackground
+        Write-Host "`nBackend e frontend no ar (sem E2E). Pressione Ctrl+C para encerrar." -ForegroundColor Green
+        Wait-Process -Id $backendProcess.Id, $frontendProcess.Id
+    }
+    finally {
+        if (-not $KeepServices) {
+            Stop-ProcessSafe -Process $frontendProcess -Name 'frontend'
+            Stop-ProcessSafe -Process $backendProcess -Name 'backend'
+        }
+    }
+}
+
 function Stop-ProcessSafe {
     param([System.Diagnostics.Process]$Process, [string]$Name)
 
@@ -288,5 +305,8 @@ switch ($Target) {
             Stop-ProcessSafe -Process $backendProcess -Name 'backend'
             exit 1
         }
+    }
+    'dev' {
+        Run-Dev
     }
 }

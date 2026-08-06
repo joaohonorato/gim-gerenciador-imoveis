@@ -8,6 +8,6 @@ import java.util.UUID;
 
 @Repository
 public interface PagamentoJpaRepository extends CrudRepository<PagamentoJpaEntity, UUID> {
-    List<PagamentoJpaEntity> findByContratoId(UUID contratoId);
+    List<PagamentoJpaEntity> findByContratoIdOrderByVencimentoAsc(UUID contratoId);
     List<PagamentoJpaEntity> findByContratoIdIn(List<UUID> contratoIds);
 }

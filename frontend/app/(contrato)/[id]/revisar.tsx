@@ -1,19 +1,23 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Linking } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { apiFetch } from '@/api/client';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { apiFetch, ApiException, getErrorMessage } from '@/api/client';
 import { escolherEEnviarDocumentoContrato, escolherEEnviarDocumentoGarantia } from '@/api/documentos';
 import { ArquivoInfo, Contrato, DocumentosContrato, MeResponse } from '@/api/types';
 import { Card } from '@/design/Card';
 import { Button } from '@/design/Button';
 import { StatusBadge } from '@/design/StatusBadge';
+import { hapticError, hapticSuccess } from '@/utils/haptics';
 
 export default function RevisarContratoScreen() {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [contrato, setContrato] = useState<Contrato | null>(null);
   const [me, setMe] = useState<MeResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [cadastroIncompleto, setCadastroIncompleto] = useState(false);
 
   const [documentos, setDocumentos] = useState<DocumentosContrato | null>(null);
   const [uploadingDocumento, setUploadingDocumento] = useState(false);
@@ -44,7 +48,7 @@ export default function RevisarContratoScreen() {
       const { url } = await apiFetch<{ url: string }>(`/arquivos/${arquivo.id}/url`);
       Linking.openURL(url);
     } catch (e: any) {
-      setDocumentosError(e.message ?? 'Não foi possível abrir o arquivo');
+      setDocumentosError(getErrorMessage(e, 'Não foi possível abrir o arquivo'));
     }
   }
 
@@ -56,7 +60,7 @@ export default function RevisarContratoScreen() {
       await escolherEEnviarDocumentoContrato(id);
       carregarDocumentos();
     } catch (e: any) {
-      setDocumentosError(e.message ?? 'Não foi possível enviar o documento');
+      setDocumentosError(getErrorMessage(e, 'Não foi possível enviar o documento'));
     } finally {
       setUploadingDocumento(false);
     }
@@ -70,7 +74,7 @@ export default function RevisarContratoScreen() {
       await escolherEEnviarDocumentoGarantia(id);
       carregarDocumentos();
     } catch (e: any) {
-      setDocumentosError(e.message ?? 'Não foi possível enviar o documento');
+      setDocumentosError(getErrorMessage(e, 'Não foi possível enviar o documento'));
     } finally {
       setUploadingGarantia(false);
     }
@@ -82,14 +86,21 @@ export default function RevisarContratoScreen() {
     const parte = me.tipoConta === 'INQUILINO' ? 'INQUILINO' : 'PROPRIETARIO';
     setLoading(true);
     setError('');
+    setCadastroIncompleto(false);
     try {
       const updated = await apiFetch<Contrato>(`/contratos/${id}/assinar`, {
         method: 'POST',
         body: JSON.stringify({ parte }),
       });
       setContrato(updated);
+      hapticSuccess();
     } catch (e: any) {
-      setError(e.message ?? 'Erro ao assinar');
+      hapticError();
+      if (e instanceof ApiException && e.error.code === 'CADASTRO_INCOMPLETO') {
+        setCadastroIncompleto(true);
+      } else {
+        setError(getErrorMessage(e, 'Erro ao assinar'));
+      }
     } finally {
       setLoading(false);
     }
@@ -105,7 +116,7 @@ export default function RevisarContratoScreen() {
   const assinaturaLabel = me?.tipoConta === 'INQUILINO' ? 'Assinar como inquilino' : 'Assinar como proprietário';
 
   return (
-    <ScrollView className="flex-1 bg-surface" contentContainerClassName="p-6">
+    <ScrollView className="flex-1 bg-surface" contentContainerClassName="p-6" contentContainerStyle={{ paddingTop: insets.top + 24 }}>
       <View className="flex-row items-center gap-4 mb-6">
         <Button label="← Voltar" onPress={() => router.back()} variant="outline" />
         <Text className="text-primary" style={{ fontSize: 24, fontWeight: '800' }}>Revisar contrato</Text>
@@ -133,7 +144,23 @@ export default function RevisarContratoScreen() {
           </View>
           {exibirBotaoAssinar ? (
             <View className="gap-3 mt-5">
-              {error ? <Text style={{ color: '#DC2626', fontSize: 13 }}>{error}</Text> : null}
+              {cadastroIncompleto ? (
+                <View className="gap-2 rounded-lg px-4 py-3" style={{ backgroundColor: '#FFFBEB' }}>
+                  <Text style={{ color: '#B45309', fontSize: 13, fontWeight: '600' }}>
+                    Complete seu CPF/CNPJ no perfil antes de assinar contratos.
+                  </Text>
+                  <Text
+                    testID="link-completar-cadastro"
+                    onPress={() => router.push('/perfil')}
+                    accessibilityRole="link"
+                    style={{ color: '#2563EB', fontSize: 13, fontWeight: '700' }}
+                  >
+                    Ir para o perfil
+                  </Text>
+                </View>
+              ) : error ? (
+                <Text style={{ color: '#DC2626', fontSize: 13 }}>{error}</Text>
+              ) : null}
               <Button testID="btn-assinar" label={assinaturaLabel} onPress={assinar} loading={loading} />
             </View>
           ) : null}
@@ -197,6 +224,8 @@ function ArquivoRow({ arquivo, onAbrir }: { arquivo: ArquivoInfo; onAbrir: (arqu
       </Text>
       <Text
         onPress={() => onAbrir(arquivo)}
+        accessibilityRole="link"
+        accessibilityLabel={`Abrir documento ${arquivo.nomeOriginal}`}
         style={{ color: '#2563EB', fontSize: 13, fontWeight: '700' }}
       >
         Abrir

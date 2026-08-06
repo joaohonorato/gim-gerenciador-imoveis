@@ -21,13 +21,16 @@ public class SolicitarMagicLink {
     private final MagicLinkRepository repository;
     private final MagicLinkSender sender;
     private final ProprietarioRepository proprietarioRepository;
+    private final SemearCatalogosPadrao semearCatalogosPadrao;
     private final Clock clock;
 
     public SolicitarMagicLink(MagicLinkRepository repository, MagicLinkSender sender,
-                               ProprietarioRepository proprietarioRepository, Clock clock) {
+                               ProprietarioRepository proprietarioRepository,
+                               SemearCatalogosPadrao semearCatalogosPadrao, Clock clock) {
         this.repository = repository;
         this.sender = sender;
         this.proprietarioRepository = proprietarioRepository;
+        this.semearCatalogosPadrao = semearCatalogosPadrao;
         this.clock = clock;
     }
 
@@ -37,6 +40,7 @@ public class SolicitarMagicLink {
         if (proprietarioRepository.findByEmail(email).isEmpty() && nomeOpcional != null && cpfCnpjOpcional != null) {
             Proprietario novo = Proprietario.cadastrar(nomeOpcional, CpfCnpj.parse(cpfCnpjOpcional), email, clock.now());
             proprietarioRepository.save(novo);
+            semearCatalogosPadrao.execute(novo.id());
         }
 
         String token = geraToken();

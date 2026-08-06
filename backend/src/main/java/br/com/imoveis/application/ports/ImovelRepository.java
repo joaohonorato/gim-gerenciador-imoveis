@@ -19,4 +19,9 @@ public interface ImovelRepository {
     Conta saveConta(Conta conta);
     Optional<Conta> findContaById(UUID id);
     List<Conta> findContasByImovel(UUID imovelId);
+
+    // Candidatas ao job diário de alertas de vencimento (ver
+    // application/usecase/NotificarContasProximasDoVencimento) — janela
+    // [hoje, limite], pendentes, ainda sem alerta enviado.
+    List<Conta> findContasParaAlerta(java.time.LocalDate hoje, java.time.LocalDate limite);
 }

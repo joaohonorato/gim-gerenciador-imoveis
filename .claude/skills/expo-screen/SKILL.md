@@ -12,20 +12,20 @@ Read `frontend/AGENTS.md` first if you haven't recently — Expo 57 changed enou
 Route groups under `frontend/app/`:
 - `(auth)/` — login, register, invite acceptance (`convite/[token].tsx`, `convite/manual.tsx`) — unauthenticated.
 - `(owner)/` — proprietário-only screens (imóveis list/create, convites, per-imóvel actions). Layout at `(owner)/_layout.tsx`.
-- `(tenant)/` — inquilino-only screens, currently just `tenant/index.tsx` (home: contratos, convites, owner/imóvel info, invite-by-token acceptance, logout). This is the newest, thinnest part of the app — per `docs/plano-execucao-ajustes.md` rank 1, "jornada completa do inquilino no frontend" (document/garantia submission, chamados, richer contract views) is the top backlog item, so expect to be filling gaps here rather than following a fully-established pattern.
+- `(tenant)/` — inquilino-only screens: `tenant/index.tsx` (home: contratos, convites, owner/imóvel info, invite-by-token acceptance, logout), `tenant/pagamentos.tsx`, `tenant/chamados.tsx`, `tenant/perfil.tsx`. The full tenant journey (per `docs/jornadas-e-backlog-tecnico.md` rank 1) is built — treat this group as an established pattern to follow, not a gap to fill.
 - `(contrato)/` — contract review/signing, both owner (`[id]/revisar.tsx`) and token-based tenant signing (`locacao/[token].tsx`).
 
 Match the existing route group instead of inventing a new one unless the screen genuinely doesn't belong to owner/tenant/auth/contrato.
 
 ## API calls
 
-Use `apiFetch<T>` from `src/api/client.ts`, not raw `fetch`. It auto-attaches the bearer token from `src/api/session.ts` unless you pass `{ auth: false }` (needed for public/token-based screens like convite acceptance or `(contrato)/locacao/[token].tsx`). It throws `ApiException` (has `.status` and a typed `ApiError`) on non-2xx — catch that specifically instead of a generic try/catch on `fetch` errors, so you can show field-level or status-specific messages. Add new response shapes to `src/api/types.ts` rather than inlining `any`.
+Use `apiFetch<T>` from `src/api/client.ts`, not raw `fetch`. It auto-attaches the bearer token from `src/api/session.ts` unless you pass `{ auth: false }` (needed for public/token-based screens like convite acceptance or `(contrato)/locacao/[token].tsx`). It throws `ApiException` (has `.status` and a typed `ApiError`) on non-2xx. In the catch block, use `getErrorMessage(e, fallback)` (also from `src/api/client.ts`) to get an action-oriented message — it maps `ApiException`'s error code to the catalog in `docs/catalogo-erros-api.md`, handles `ApiNetworkException` (timeout/offline), and falls back to your `fallback` string otherwise. Never show `e.message`/`error.error.message` raw — that's the backend's internal exception text, not a user-facing message. Add new response shapes to `src/api/types.ts` rather than inlining `any`.
 
 `EXPO_PUBLIC_API_URL` overrides the backend base URL (default `http://localhost:8080`) — don't hardcode the host.
 
 ## Design system
 
-Use the components in `src/design/` (`Button`, `Card`, `StatusBadge`) and tokens in `src/design/tokens.ts` — don't hand-roll styling that duplicates them. Current baseline is a Bauhaus aesthetic (see `docs/gerenciador-imoveis-initial-prompt.md` §6): flat surfaces, no shadows/gradients, solid black borders, 8pt spacing grid, sharp corners. Status must be readable by **color and shape together** (circle/square/triangle in `StatusBadge`), not color alone — colorblind-safe by design, so don't collapse a new status to a color-only dot.
+Use the components in `src/design/` (`Button`, `Card`, `StatusBadge`) and tokens in `src/design/tokens.ts` — don't hand-roll styling that duplicates them. Current baseline is a Bauhaus aesthetic (see `docs/especificacao-produto.md` §6): flat surfaces, no shadows/gradients, solid black borders, 8pt spacing grid, sharp corners. Status must be readable by **color and shape together** (circle/square/triangle in `StatusBadge`), not color alone — colorblind-safe by design, so don't collapse a new status to a color-only dot.
 
 There may be a local, unversioned design handoff at `design_handoff_portal_redesign/` (gitignored — won't exist on a fresh clone) proposing a softer, lighter-border visual direction that supersedes the tokens above. If it's present, treat it as the current intent for any screen it covers and flag the discrepancy with CLAUDE.md/the spec rather than silently picking one.
 

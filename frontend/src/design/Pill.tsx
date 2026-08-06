@@ -1,4 +1,5 @@
 import { Pressable, Text } from 'react-native';
+import { colors } from './tokens';
 
 interface Props {
   label: string;
@@ -12,9 +13,9 @@ export function Pill({ label, selected, onPress }: Props) {
       onPress={onPress}
       className="px-[13px] py-2 rounded-lg"
       style={{
-        backgroundColor: selected ? '#2563EB' : '#FFFFFF',
+        backgroundColor: selected ? colors.accent : colors.card,
         borderWidth: 1.5,
-        borderColor: selected ? '#2563EB' : '#E5E7EB',
+        borderColor: selected ? colors.accent : colors.border,
       }}
     >
       <Text style={{ color: selected ? '#FFFFFF' : '#374151', fontSize: 12.5, fontWeight: '600' }}>{label}</Text>

@@ -35,7 +35,7 @@ class AprovarCandidatoTest {
     void aprovaQuandoNaoHaSobreposicao() {
         UUID proprietarioId = UUID.randomUUID();
         UUID inquilinoId = UUID.randomUUID();
-        Imovel imovel = Imovel.cadastrar(proprietarioId, "Rua A", "SP", "M-1");
+        Imovel imovel = Imovel.cadastrar(proprietarioId, "Rua A", "SP", "M-1", Instant.now());
         imovelRepo.save(imovel);
         Convite convite = Convite.gerar(imovel.id(), imovel.unidadePadrao().id(), proprietarioId,
             condicoes(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)), Instant.now());
@@ -54,7 +54,7 @@ class AprovarCandidatoTest {
     @Test
     void rejeitaQuandoHaContratoAssinadoSobreposto() {
         UUID proprietarioId = UUID.randomUUID();
-        Imovel imovel = Imovel.cadastrar(proprietarioId, "Rua A", "SP", "M-1");
+        Imovel imovel = Imovel.cadastrar(proprietarioId, "Rua A", "SP", "M-1", Instant.now());
         imovelRepo.save(imovel);
 
         Contrato existente = Contrato.novo(imovel.unidadePadrao().id(), UUID.randomUUID(), proprietarioId, UUID.randomUUID(),

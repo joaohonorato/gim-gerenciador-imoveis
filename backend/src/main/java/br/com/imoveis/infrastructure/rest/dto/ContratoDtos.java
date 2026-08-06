@@ -18,14 +18,22 @@ public final class ContratoDtos {
     private ContratoDtos() {}
 
     @Serdeable
-    public record ContratoResponse(UUID id, UUID unidadeId, UUID inquilinoId, UUID proprietarioId,
+    public record ContratoResponse(UUID id, UUID unidadeId, UUID imovelId, UUID inquilinoId, UUID proprietarioId,
+                                    String nomeProprietario, String enderecoImovel,
                                     LocalDate dataInicio, LocalDate dataFim, TipoContrato tipo,
                                     BigDecimal valorAluguel, String indiceReajuste,
                                     ContratoAssinaturaStatus statusAssinatura,
                                     boolean assinouProprietario, boolean assinouInquilino,
                                     GarantiaTipo garantiaTipo) {
-        public static ContratoResponse from(Contrato c) {
-            return new ContratoResponse(c.id(), c.unidadeId(), c.inquilinoId(), c.proprietarioId(),
+        // nomeProprietario/enderecoImovel/imovelId são resolvidos fora deste DTO
+        // (via ProprietarioRepository/ImovelRepository, no controller) e passados
+        // explicitamente — este método não tem acesso a repositório, e nenhum dos
+        // três dados faz parte do agregado Contrato (que só guarda unidadeId).
+        // imovelId é exposto pro frontend do inquilino conseguir abrir chamado
+        // (POST /imoveis/{imovelId}/chamados) sem precisar resolver unidade→imóvel.
+        public static ContratoResponse from(Contrato c, String nomeProprietario, String enderecoImovel, UUID imovelId) {
+            return new ContratoResponse(c.id(), c.unidadeId(), imovelId, c.inquilinoId(), c.proprietarioId(),
+                nomeProprietario, enderecoImovel,
                 c.periodo().inicio(), c.periodo().fim(), c.tipo(), c.valorAluguel().valor(),
                 c.indiceReajuste(), c.statusAssinatura(),
                 c.assinaturas().contains(ParteContrato.PROPRIETARIO),

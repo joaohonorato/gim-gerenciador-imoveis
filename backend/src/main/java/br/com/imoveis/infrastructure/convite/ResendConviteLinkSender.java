@@ -12,11 +12,13 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
 @Singleton
 public class ResendConviteLinkSender implements ConviteLinkSender {
 
     private static final Logger log = LoggerFactory.getLogger(ResendConviteLinkSender.class);
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
     private final HttpClient httpClient;
     private final String resendApiKey;
@@ -28,7 +30,7 @@ public class ResendConviteLinkSender implements ConviteLinkSender {
         @Value("${app.convites.resend.from-email:no-reply@imoveis.local}") String resendFromEmail,
         @Value("${app.convites.frontend-base-url:http://localhost:19006}") String frontendBaseUrl
     ) {
-        this.httpClient = HttpClient.newHttpClient();
+        this.httpClient = HttpClient.newBuilder().connectTimeout(REQUEST_TIMEOUT).build();
         this.resendApiKey = resendApiKey;
         this.resendFromEmail = resendFromEmail;
         this.frontendBaseUrl = frontendBaseUrl;
@@ -54,6 +56,7 @@ public class ResendConviteLinkSender implements ConviteLinkSender {
             HttpRequest request = HttpRequest.newBuilder(URI.create("https://api.resend.com/emails"))
                 .header("Authorization", "Bearer " + resendApiKey)
                 .header("Content-Type", "application/json")
+                .timeout(REQUEST_TIMEOUT)
                 .POST(HttpRequest.BodyPublishers.ofString(payload))
                 .build();
 

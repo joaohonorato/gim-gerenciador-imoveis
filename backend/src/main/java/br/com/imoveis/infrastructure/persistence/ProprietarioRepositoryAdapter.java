@@ -31,10 +31,11 @@ public class ProprietarioRepositoryAdapter implements ProprietarioRepository {
         ProprietarioJpaEntity e = jpa.findById(p.id()).orElseGet(ProprietarioJpaEntity::new);
         e.setId(p.id());
         e.setNome(p.nome());
-        e.setCpfCnpj(p.cpfCnpj().digits());
+        e.setCpfCnpj(p.cpfCnpj() != null ? p.cpfCnpj().digits() : null);
         e.setEmail(p.email().value());
         e.setPerfil(p.perfil().name());
         e.setCriadoEm(p.criadoEm());
+        e.setTelefone(p.telefone());
         em.merge(e);
         return p;
     }
@@ -55,7 +56,8 @@ public class ProprietarioRepositoryAdapter implements ProprietarioRepository {
     }
 
     private Proprietario toDomain(ProprietarioJpaEntity e) {
-        return Proprietario.reconstituir(e.getId(), e.getNome(), CpfCnpj.parse(e.getCpfCnpj()),
-            new Email(e.getEmail()), PerfilProprietario.valueOf(e.getPerfil()), e.getCriadoEm());
+        CpfCnpj cpfCnpj = e.getCpfCnpj() != null ? CpfCnpj.parse(e.getCpfCnpj()) : null;
+        return Proprietario.reconstituir(e.getId(), e.getNome(), cpfCnpj,
+            new Email(e.getEmail()), PerfilProprietario.valueOf(e.getPerfil()), e.getCriadoEm(), e.getTelefone());
     }
 }

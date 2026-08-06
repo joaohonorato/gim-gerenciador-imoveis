@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { apiFetch } from '@/api/client';
+import { apiFetch, getErrorMessage } from '@/api/client';
 import { Button } from '@/design/Button';
 
 export default function EsqueciSenhaScreen() {
@@ -25,7 +25,7 @@ export default function EsqueciSenhaScreen() {
       });
       setEnviado(true);
     } catch (e: any) {
-      setError(e.message ?? 'Não foi possível enviar o e-mail');
+      setError(getErrorMessage(e, 'Não foi possível enviar o e-mail'));
     } finally {
       setLoading(false);
     }
@@ -61,6 +61,8 @@ export default function EsqueciSenhaScreen() {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                textContentType="emailAddress"
+                autoComplete="email"
                 className="bg-card px-4 py-[13px] text-primary rounded-xl"
                 style={{ borderWidth: 1.5, borderColor: '#E5E7EB', fontSize: 15 }}
               />

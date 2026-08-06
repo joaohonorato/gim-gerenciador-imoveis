@@ -1,7 +1,7 @@
 package br.com.imoveis.infrastructure.persistence.jpa;
 
+import br.com.imoveis.domain.contrato.ParteContrato;
 import br.com.imoveis.domain.imovel.ContaStatus;
-import br.com.imoveis.domain.imovel.TipoConta;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -15,12 +15,11 @@ public class ContaJpaEntity {
     @Id
     private UUID id;
 
-    @Column(name = "imovel_id", nullable = false)
-    private UUID imovelId;
+    @Column(name = "unidade_id", nullable = false)
+    private UUID unidadeId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private TipoConta tipo;
+    @Column(name = "tipo_conta_id", nullable = false)
+    private UUID tipoContaId;
 
     @Column(nullable = false)
     private LocalDate vencimento;
@@ -32,14 +31,24 @@ public class ContaJpaEntity {
     @Column(nullable = false)
     private ContaStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ParteContrato responsavel;
+
+    @Column(name = "contrato_id")
+    private UUID contratoId;
+
+    @Column(name = "alerta_enviado", nullable = false)
+    private boolean alertaEnviado;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
-    public UUID getImovelId() { return imovelId; }
-    public void setImovelId(UUID imovelId) { this.imovelId = imovelId; }
+    public UUID getUnidadeId() { return unidadeId; }
+    public void setUnidadeId(UUID unidadeId) { this.unidadeId = unidadeId; }
 
-    public TipoConta getTipo() { return tipo; }
-    public void setTipo(TipoConta tipo) { this.tipo = tipo; }
+    public UUID getTipoContaId() { return tipoContaId; }
+    public void setTipoContaId(UUID tipoContaId) { this.tipoContaId = tipoContaId; }
 
     public LocalDate getVencimento() { return vencimento; }
     public void setVencimento(LocalDate vencimento) { this.vencimento = vencimento; }
@@ -49,4 +58,13 @@ public class ContaJpaEntity {
 
     public ContaStatus getStatus() { return status; }
     public void setStatus(ContaStatus status) { this.status = status; }
+
+    public ParteContrato getResponsavel() { return responsavel; }
+    public void setResponsavel(ParteContrato responsavel) { this.responsavel = responsavel; }
+
+    public UUID getContratoId() { return contratoId; }
+    public void setContratoId(UUID contratoId) { this.contratoId = contratoId; }
+
+    public boolean isAlertaEnviado() { return alertaEnviado; }
+    public void setAlertaEnviado(boolean alertaEnviado) { this.alertaEnviado = alertaEnviado; }
 }
